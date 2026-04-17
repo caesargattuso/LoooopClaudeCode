@@ -21,6 +21,7 @@ def run_claude(prompt: str) -> str:
     print(f"\n{'='*60}")
     print(f"[Claude] 执行中...")
     print(f"{'='*60}\n")
+    sys.stdout.flush()  # 立即刷新
 
     # 构建 subprocess 环境变量
     env = os.environ.copy()
@@ -38,7 +39,9 @@ def run_claude(prompt: str) -> str:
             pass
 
     # 使用 Popen 实现实时流式输出
-    cmd = 'claude -p --dangerously-skip-permissions'
+    # --verbose 显示详细执行过程
+    # --output-format stream-json 流式JSON输出
+    cmd = 'claude -p --dangerously-skip-permissions --verbose --output-format stream-json'
     process = subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE,
@@ -62,6 +65,7 @@ def run_claude(prompt: str) -> str:
             break
         if line:
             print(line, end='')  # 实时打印到命令行
+            sys.stdout.flush()   # 立即刷新缓冲区
             output_lines.append(line)
 
     # 读取错误输出
