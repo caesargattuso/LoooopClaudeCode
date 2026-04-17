@@ -1,0 +1,99 @@
+{
+  "project": "示例项目",
+  "created_at": "2026-04-17",
+  "requirements_doc": "requirements/example.md",
+  "tasks": [
+    {
+      "id": 1,
+      "name": "创建任务数据结构",
+      "description": "定义Task类和任务列表数据结构，包含id、title、description、priority、status字段",
+      "priority": "high",
+      "dependencies": [],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 2,
+      "name": "实现数据持久化",
+      "description": "实现save_tasks和load_tasks函数，将任务保存到JSON文件",
+      "priority": "high",
+      "dependencies": [
+        1
+      ],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 3,
+      "name": "实现添加任务功能",
+      "description": "实现add命令，支持标题、描述、优先级参数",
+      "priority": "medium",
+      "dependencies": [
+        2
+      ],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 4,
+      "name": "实现列出任务功能",
+      "description": "实现list命令，格式化显示所有任务",
+      "priority": "medium",
+      "dependencies": [
+        2
+      ],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 5,
+      "name": "实现完成任务功能",
+      "description": "实现done命令，根据id标记任务为已完成",
+      "priority": "medium",
+      "dependencies": [
+        2
+      ],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 6,
+      "name": "实现删除任务功能",
+      "description": "实现delete命令，根据id删除任务",
+      "priority": "low",
+      "dependencies": [
+        2
+      ],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 7,
+      "name": "添加帮助信息",
+      "description": "为所有命令添加帮助信息和使用说明",
+      "priority": "low",
+      "dependencies": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    }
+  ]
+}
