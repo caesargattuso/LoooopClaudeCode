@@ -146,6 +146,8 @@ def main():
                         help="将任务从人工干预状态恢复为待执行")
     parser.add_argument("--max-tasks", "-m", type=int, default=0,
                         help="最大执行任务数（0表示无限制）")
+    parser.add_argument("--push", "-P", action="store_true",
+                        help="任务完成后执行 git push")
     args = parser.parse_args()
 
     if args.decompose:
@@ -258,6 +260,12 @@ def main():
 
         # 构建执行提示
         today = __import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # git 操作指令（根据 --push 参数）
+        git_cmds = '   - git add 所有变更文件\n   - git commit -m "完成任务 #{}: {}"'.format(task['id'], task['name'])
+        if args.push:
+            git_cmds += "\n   - git push"
+
         prompt = f"""请执行以下开发任务:
 
 任务名称: {task['name']}
@@ -288,9 +296,8 @@ def main():
 - [如需人工干预说明原因，无则写"无"]
 ========================================
 
-6. 如果任务已完成且有文件变更，执行 git commit:
-   - git add 所有变更文件
-   - commit message: "完成任务 #{task['id']}: {task['name']}"
+6. 如果任务已完成且有文件变更，执行 git 操作:
+{git_cmds}
 
 7. 输出末尾仅标记状态:
 ---STATUS---

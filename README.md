@@ -4,11 +4,13 @@
 
 ## 核心流程
 
-1. **拆解需求** - Claude 分析需求文档，拆解成可独立完成的子任务
+1. **拆解需求** - Claude 分析 docs 目录下所有需求文档，拆解成子任务
 2. **智能执行** - 按优先级和依赖关系自动选择下一个任务执行
-3. **进度跟踪** - Claude 自动将任务总结写入 `progress.txt`
-4. **Git 提交** - Claude 自动执行 git add 和 commit
-5. **人工干预** - 需要人工处理的任务自动标记，跳过执行
+3. **代码生成** - 所有代码文件默认放入 `src/` 目录
+4. **进度跟踪** - Claude 自动将任务总结写入 `progress.txt`
+5. **Git 提交** - Claude 自动执行 git add、git commit
+6. **Git Push** - 使用 `--push` 参数可自动推送到远程仓库
+7. **人工干预** - 需要人工处理的任务自动标记，跳过执行
 
 ## 项目结构
 
@@ -19,7 +21,8 @@ LoooopClaudeCode/
 ├── tasks.json       # 任务数据文件
 ├── progress.txt     # 任务进度记录（Claude自动编写）
 ├── docs/            # 需求文档目录
-│   └── example.md   # 示例需求文档
+│   └── snake_game.md
+├── src/             # 生成的代码目录（Claude自动创建）
 ```
 
 ## 使用方法
@@ -57,6 +60,9 @@ python run.py --status
 # 执行所有任务
 python run.py
 
+# 执行任务并推送到远程仓库
+python run.py --push
+
 # 仅执行指定数量任务（测试用）
 python run.py --max-tasks 1
 ```
@@ -84,6 +90,7 @@ python run.py --resolve-manual 3
 | `--list-manual` | `-L` | 列出所有需人工干预的任务 |
 | `--resolve-manual ID` | `-R` | 恢复任务为待执行状态 |
 | `--max-tasks N` | `-m` | 最大执行任务数（0=无限制） |
+| `--push` | `-P` | 任务完成后执行 git push |
 
 ## 任务数据结构 (tasks.json)
 
