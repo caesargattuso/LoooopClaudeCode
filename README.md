@@ -33,6 +33,9 @@ LoooopClaudeCode/
 # Claude 自动读取 docs 目录下所有文档并写入 tasks.json
 python run.py --decompose
 
+# 拆解后提交并推送到远程仓库
+python run.py --decompose --push
+
 # 或指定其他目录
 python run.py --decompose my_docs
 ```

@@ -77,7 +77,7 @@ def run_claude(prompt: str) -> str:
     return ''.join(output_lines)
 
 
-def decompose_requirements(docs_dir: str = "docs") -> None:
+def decompose_requirements(docs_dir: str = "docs", push: bool = False) -> None:
     """让Claude拆解docs目录下所有需求文档并写入tasks.json"""
     if not os.path.exists(docs_dir):
         print(f"错误: 目录不存在 - {docs_dir}")
@@ -95,6 +95,11 @@ def decompose_requirements(docs_dir: str = "docs") -> None:
 
     doc_list = "\n".join(doc_files)
     today = str(__import__('datetime').datetime.now().date())
+
+    # git 操作指令
+    git_cmds = "- git add tasks.json\n   - git commit -m \"任务拆解完成\""
+    if push:
+        git_cmds += "\n   - git push"
 
     prompt = f"""请分析 docs 目录下的所有需求文档，将其拆解成具体的开发任务列表。
 
@@ -126,6 +131,9 @@ def decompose_requirements(docs_dir: str = "docs") -> None:
   ]
 }}
 
+5. 保存完成后执行 git 操作:
+{git_cmds}
+
 完成后请告知任务数量。
 """
 
@@ -151,7 +159,7 @@ def main():
     args = parser.parse_args()
 
     if args.decompose:
-        decompose_requirements(args.decompose)
+        decompose_requirements(args.decompose, args.push)
         return
 
     if args.status:
