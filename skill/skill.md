@@ -25,15 +25,17 @@ All task-related files are stored in `src/.looop/` directory:
 
 ## Execute Script
 
+**Important**: Change to the skill directory first before running the script.
+
 ```bash
-python skill/run.py --src <DIR> [--docs <DIR>] [other parameters]
+cd <skill_directory> && python run.py --src <DIR> [--docs <DIR>] [other parameters]
 ```
 
 ## Core Workflow
 
 ### Phase 1: Task Decomposition (requires docs + src)
 
-Command: `python skill/run.py --docs <requirements_dir> --src <code_dir> --decompose`
+Command: `python run.py --docs <requirements_dir> --src <code_dir> --decompose`
 
 The script will automatically:
 1. Create `src/.looop/` directory
@@ -44,7 +46,7 @@ The script will automatically:
 
 ### Phase 2: Task Execution (only requires src)
 
-Command: `python skill/run.py --src <code_dir>`
+Command: `python run.py --src <code_dir>`
 
 The script will first check if `src/.looop/tasks.json` exists:
 - Not exists → Prompt to run `--decompose` first
@@ -73,16 +75,16 @@ Execution process:
 
 ```
 # Decompose requirements (requires docs + src)
-python skill/run.py --docs docs --src src --decompose
+python run.py --docs docs --src src --decompose
 
 # Execute tasks (only requires src)
-python skill/run.py --src src
+python run.py --src src
 
 # View status
-python skill/run.py --src src --status
+python run.py --src src --status
 
 # Execute max 3 tasks and push
-python skill/run.py --src src --max-tasks 3 --push
+python run.py --src src --max-tasks 3 --push
 ```
 
 ## tasks.json Data Structure
@@ -121,5 +123,5 @@ python skill/run.py --src src --max-tasks 3 --push
 
 1. **Receive parameters** - Parse src (required) and optional docs
 2. **Build command** - Build python command based on parameters
-3. **Execute script** - Run skill/run.py using Bash tool
+3. **Execute script** - Change to skill directory, then run run.py using Bash tool
 4. **Output results** - Display execution output and progress
