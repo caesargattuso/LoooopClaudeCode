@@ -1,0 +1,163 @@
+{
+  "project": "Snake Game",
+  "created_at": "2026-04-20",
+  "docs_dir": "D:\\Projects\\LoooopClaudeCode\\docs",
+  "src_dir": "D:\\Projects\\LoooopClaudeCode\\src",
+  "requirements_docs": ["D:\\Projects\\LoooopClaudeCode\\docs\\snake_game.md"],
+  "tasks": [
+    {
+      "id": 1,
+      "name": "创建HTML文件结构",
+      "description": "创建snake_game.html基础文件，包含HTML骨架、样式区域和脚本区域占位",
+      "priority": "high",
+      "dependencies": [],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 2,
+      "name": "实现Canvas游戏画布",
+      "description": "初始化Canvas元素，设置游戏区域网格，实现基础渲染框架",
+      "priority": "high",
+      "dependencies": [1],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 3,
+      "name": "实现蛇的数据结构与移动逻辑",
+      "description": "定义蛇的身体数据结构（数组存储各段位置），实现蛇的持续移动和方向控制逻辑",
+      "priority": "high",
+      "dependencies": [2],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 4,
+      "name": "实现键盘输入控制",
+      "description": "监听方向键（上下左右）输入，实现蛇的移动方向切换（禁止180度反向）",
+      "priority": "high",
+      "dependencies": [3],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 5,
+      "name": "实现食物生成系统",
+      "description": "随机生成食物位置，确保食物不出现在蛇身上，渲染食物到画布",
+      "priority": "high",
+      "dependencies": [2, 3],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 6,
+      "name": "实现碰撞检测",
+      "description": "检测蛇头是否撞墙或撞到自身身体，触发游戏结束",
+      "priority": "high",
+      "dependencies": [3],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 7,
+      "name": "实现蛇吃食物与成长逻辑",
+      "description": "检测蛇头与食物位置重叠，蛇身增长1节，分数+10，生成新食物",
+      "priority": "high",
+      "dependencies": [3, 5],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 8,
+      "name": "实现分数系统",
+      "description": "维护当前分数，在界面上实时显示分数",
+      "priority": "medium",
+      "dependencies": [7],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 9,
+      "name": "实现游戏状态管理",
+      "description": "实现开始、暂停/继续、重新开始按钮功能，管理游戏运行状态",
+      "priority": "medium",
+      "dependencies": [3, 6],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 10,
+      "name": "实现难度等级系统",
+      "description": "提供慢/中/快三档难度选择，不同难度对应不同移动速度",
+      "priority": "medium",
+      "dependencies": [9],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 11,
+      "name": "实现最高分本地存储",
+      "description": "使用localStorage保存历史最高分，游戏结束时更新和显示最高分",
+      "priority": "low",
+      "dependencies": [8],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 12,
+      "name": "实现蛇头蛇身颜色区分",
+      "description": "蛇头和蛇身使用不同颜色渲染，增强视觉效果",
+      "priority": "low",
+      "dependencies": [3],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 13,
+      "name": "完善UI界面布局",
+      "description": "按设计图布局：标题、分数区、游戏画布、难度选择、控制按钮，添加游戏速度显示",
+      "priority": "low",
+      "dependencies": [8, 10, 11],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    },
+    {
+      "id": 14,
+      "name": "最终测试与验收",
+      "description": "验证所有验收标准：键盘响应、食物生成、碰撞检测、分数计算、最高分保存、难度速度差异",
+      "priority": "medium",
+      "dependencies": [13],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    }
+  ]
+}
