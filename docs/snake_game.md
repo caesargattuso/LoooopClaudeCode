@@ -1,70 +1,70 @@
-# 贪吃蛇游戏需求文档
+# Snake Game Requirements Document
 
-## 项目概述
-开发一个经典的贪吃蛇游戏，玩家控制蛇在游戏区域内移动，吃食物增长，避免撞墙或撞到自己。
+## Project Overview
+Develop a classic Snake game where the player controls a snake moving within the game area, eating food to grow, while avoiding hitting walls or itself.
 
-## 功能需求
+## Functional Requirements
 
-### 1. 游戏核心功能
-- 蛇的移动控制（方向键：上、下、左、右）
-- 蛇吃食物后身体增长
-- 随机生成食物位置
-- 游戏结束判定（撞墙、撞自己）
+### 1. Core Game Features
+- Snake movement control (Arrow keys: Up, Down, Left, Right)
+- Snake grows when eating food
+- Random food position generation
+- Game over detection (hit wall, hit self)
 
-### 2. 游戏界面
-- 游戏区域网格显示
-- 蛇的身体可视化（蛇头、蛇身不同颜色）
-- 食物显示
-- 当前分数显示
-- 游戏速度显示
+### 2. Game Interface
+- Game area grid display
+- Snake body visualization (different colors for head and body)
+- Food display
+- Current score display
+- Game speed display
 
-### 3. 游戏控制
-- 开始游戏按钮
-- 暂停/继续游戏
-- 重新开始游戏
-- 游戏结束后显示最终分数
+### 3. Game Controls
+- Start game button
+- Pause/Resume game
+- Restart game
+- Display final score after game over
 
-### 4. 难度设置
-- 提供多个难度等级（慢速、中速、快速）
-- 难度影响蛇移动速度
+### 4. Difficulty Settings
+- Multiple difficulty levels (Slow, Medium, Fast)
+- Difficulty affects snake movement speed
 
-### 5. 记录功能
-- 最高分记录保存
-- 本地存储历史最高分
+### 5. Record Features
+- High score record saving
+- Local storage of historical high score
 
-## 技术要求
-- 使用 HTML5 + JavaScript 实现
-- Canvas 绘制游戏画面
-- 单文件实现（snake_game.html）
-- 无需外部依赖
+## Technical Requirements
+- Implement with HTML5 + JavaScript
+- Canvas for game rendering
+- Single file implementation (snake_game.html)
+- No external dependencies
 
-## 游戏规则
-1. 蛇初始长度为3节
-2. 蛇持续向当前方向移动
-3. 吃到食物后蛇身增长1节，分数+10
-4. 撞到边界或自己身体则游戏结束
-5. 食物随机生成，不能出现在蛇身上
+## Game Rules
+1. Snake initial length is 3 segments
+2. Snake continuously moves in current direction
+3. Eating food grows snake by 1 segment, score +10
+4. Hitting boundary or own body ends the game
+5. Food randomly generated, cannot appear on snake body
 
-## 界面布局
+## Interface Layout
 ```
 +----------------------------------+
-|         贪吃蛇游戏               |
+|         Snake Game               |
 +----------------------------------+
-| 分数: 100  |  最高分: 500        |
+| Score: 100  |  High Score: 500   |
 +----------------------------------+
 |                                  |
-|         [游戏区域 Canvas]        |
+|         [Game Area Canvas]       |
 |                                  |
 +----------------------------------+
-| 难度: [慢] [中] [快]             |
-| [开始] [暂停] [重置]             |
+| Difficulty: [Slow] [Med] [Fast]  |
+| [Start] [Pause] [Reset]          |
 +----------------------------------+
 ```
 
-## 验收标准
-- 蛇能正确响应方向键控制
-- 食物随机生成且不在蛇身上
-- 撞墙/撞自己后游戏正确结束
-- 分数计算准确
-- 最高分能正确保存和显示
-- 各难度等级速度有明显区别
+## Acceptance Criteria
+- Snake correctly responds to arrow key controls
+- Food randomly generated and not on snake body
+- Game correctly ends after hitting wall/self
+- Score calculation accurate
+- High score correctly saved and displayed
+- Each difficulty level has noticeable speed difference

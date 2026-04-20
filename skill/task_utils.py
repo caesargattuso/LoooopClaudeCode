@@ -1,49 +1,58 @@
-"""任务管理工具函数"""
+"""Task Management Utility Functions"""
 import json
 import os
 from datetime import datetime
 from typing import Optional
 
-TASKS_FILE = "tasks.json"
 
-
-def load_tasks() -> dict:
-    """加载任务列表"""
-    if not os.path.exists(TASKS_FILE):
-        return {"project": "", "created_at": "", "requirements_doc": "", "tasks": []}
-    with open(TASKS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def save_tasks(data: dict) -> None:
-    """保存任务列表"""
-    with open(TASKS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-
-# 任务状态常量
+# Task status constants
 STATUS_PENDING = "pending"
 STATUS_IN_PROGRESS = "in_progress"
 STATUS_COMPLETED = "completed"
 STATUS_BLOCKED = "blocked"
-STATUS_NEEDS_MANUAL = "needs_manual"  # 需要人工干预
+STATUS_NEEDS_MANUAL = "needs_manual"
+
+
+def init_looop_dir(src_dir: str) -> None:
+    """Initialize src/.looop directory"""
+    looop_dir = os.path.join(src_dir, ".looop")
+    os.makedirs(looop_dir, exist_ok=True)
+
+
+def load_tasks(tasks_file: str) -> dict:
+    """Load task list from file"""
+    if not os.path.exists(tasks_file):
+        return {
+            "project": "",
+            "created_at": "",
+            "docs_dir": "",
+            "src_dir": "",
+            "requirements_docs": [],
+            "tasks": []
+        }
+    with open(tasks_file, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_tasks(data: dict, tasks_file: str) -> None:
+    """Save task list to file"""
+    with open(tasks_file, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 def get_next_task(data: dict) -> Optional[dict]:
-    """智能选择下一个待执行任务
+    """Intelligently select the next task to execute
 
-    选择逻辑：
-    1. 过滤出pending状态的任务（排除needs_manual）
-    2. 排除依赖未完成的任务
-    3. 按优先级排序选择最高优先级
+    Selection logic:
+    1. Filter tasks with pending status (exclude needs_manual)
+    2. Exclude tasks with incomplete dependencies
+    3. Sort by priority and select highest priority
     """
-    # 过滤掉需要人工干预的任务
     pending_tasks = [t for t in data["tasks"]
                      if t["status"] == STATUS_PENDING]
     if not pending_tasks:
         return None
 
-    # 检查依赖是否完成（排除needs_manual的依赖）
     completed_ids = {t["id"] for t in data["tasks"]
                      if t["status"] == STATUS_COMPLETED}
     eligible = []
@@ -53,18 +62,17 @@ def get_next_task(data: dict) -> Optional[dict]:
             eligible.append(task)
 
     if not eligible:
-        # 所有pending任务都有未完成的依赖，返回None
         return None
 
-    # 优先级排序: high > medium > low
     priority_order = {"high": 0, "medium": 1, "low": 2}
     eligible.sort(key=lambda t: priority_order.get(t.get("priority", "medium"), 1))
     return eligible[0]
 
 
 def update_task_status(data: dict, task_id: int, status: str,
-                        result: str = None, issues: list = None) -> None:
-    """更新任务状态"""
+                       result: Optional[str] = None, issues: Optional[list] = None,
+                       tasks_file: Optional[str] = None) -> None:
+    """Update task status"""
     for task in data["tasks"]:
         if task["id"] == task_id:
             task["status"] = status
@@ -75,11 +83,12 @@ def update_task_status(data: dict, task_id: int, status: str,
             if status == "completed":
                 task["completed_at"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             break
-    save_tasks(data)
+    if tasks_file:
+        save_tasks(data, tasks_file)
 
 
 def get_task_summary(data: dict) -> dict:
-    """获取任务统计"""
+    """Get task statistics"""
     total = len(data["tasks"])
     completed = sum(1 for t in data["tasks"] if t["status"] == STATUS_COMPLETED)
     pending = sum(1 for t in data["tasks"] if t["status"] == STATUS_PENDING)
@@ -96,13 +105,15 @@ def get_task_summary(data: dict) -> dict:
     }
 
 
-def mark_task_manual(data: dict, task_id: int, reason: str = None) -> bool:
-    """标记任务为需要人工干预"""
+def mark_task_manual(data: dict, task_id: int, reason: Optional[str] = None,
+                     tasks_file: Optional[str] = None) -> bool:
+    """Mark task as needing manual intervention"""
     for task in data["tasks"]:
         if task["id"] == task_id:
             task["status"] = STATUS_NEEDS_MANUAL
             if reason:
                 task["manual_reason"] = reason
-            save_tasks(data)
+            if tasks_file:
+                save_tasks(data, tasks_file)
             return True
     return False
