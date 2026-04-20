@@ -259,8 +259,83 @@
             }
         }
 
+        // ==================== 食物类定义 ====================
+        class Food {
+            constructor() {
+                this.x = 0;
+                this.y = 0;
+                this.visible = true;
+            }
+
+            // 随机生成食物位置（确保不在蛇身上）
+            spawn(snake) {
+                let attempts = 0;
+                const maxAttempts = 100;  // 最大尝试次数，防止死循环
+
+                do {
+                    // 随机生成位置
+                    this.x = Math.floor(Math.random() * gridCount);
+                    this.y = Math.floor(Math.random() * gridCount);
+                    attempts++;
+                } while (snake.isOnSnake(this.x, this.y) && attempts < maxAttempts);
+
+                // 如果尝试次数过多，尝试找到空位
+                if (attempts >= maxAttempts) {
+                    this.findEmptyPosition(snake);
+                }
+
+                this.visible = true;
+            }
+
+            // 寻找空位置（当随机生成失败时）
+            findEmptyPosition(snake) {
+                for (let x = 0; x < gridCount; x++) {
+                    for (let y = 0; y < gridCount; y++) {
+                        if (!snake.isOnSnake(x, y)) {
+                            this.x = x;
+                            this.y = y;
+                            return;
+                        }
+                    }
+                }
+                // 如果没有空位，游戏胜利（蛇填满整个画布）
+                this.visible = false;
+            }
+
+            // 检查蛇是否吃到食物
+            isEaten(headX, headY) {
+                return this.x === headX && this.y === headY;
+            }
+
+            // 绘制食物
+            draw(ctx) {
+                if (!this.visible) return;
+
+                // 计算像素位置
+                const padding = 2;
+                const size = gridSize - padding * 2;
+                const px = this.x * gridSize + padding;
+                const py = this.y * gridSize + padding;
+
+                // 绘制食物主体（圆形）
+                ctx.fillStyle = colors.food;
+                ctx.beginPath();
+                ctx.arc(this.x * gridSize + gridSize / 2, this.y * gridSize + gridSize / 2, size / 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 添加高光效果
+                ctx.fillStyle = '#ffaaaa';
+                ctx.beginPath();
+                ctx.arc(this.x * gridSize + gridSize / 2 - 2, this.y * gridSize + gridSize / 2 - 2, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
         // ==================== 创建蛇实例 ====================
         const snake = new Snake();
+
+        // ==================== 创建食物实例 ====================
+        const food = new Food();
 
         // ==================== 网格绘制函数 ====================
         function drawGrid() {
@@ -506,6 +581,10 @@ function showKeyFeedback(text, color = '#ffcc00') {
             renderer.clearEntities();
             renderer.addEntity(snake);
 
+            // 初始化食物
+            food.spawn(snake);
+            renderer.addEntity(food);
+
             gameLoop.start();
             console.log('游戏开始');
         }
@@ -539,9 +618,21 @@ function showKeyFeedback(text, color = '#ffcc00') {
             // 检查碰撞
             if (snake.checkWallCollision() || snake.checkSelfCollision()) {
                 gameOver();
+                return;
             }
 
-            // 食物逻辑将在任务4实现
+            // 检查是否吃到食物
+            const head = snake.getHead();
+            if (food.isEaten(head.x, head.y)) {
+                // 蛇生长
+                snake.grow();
+                // 更新分数（每吃一个食物加10分）
+                score += 10;
+                scoreElement.textContent = score;
+                // 生成新食物
+                food.spawn(snake);
+                console.log('吃到食物！分数:', score);
+            }
         });
 
         gameLoop.onRender(() => {
