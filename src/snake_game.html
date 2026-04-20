@@ -41,11 +41,62 @@
             color: #ffffff;
             font-size: 1.5rem;
             margin-top: 15px;
-            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .score-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .score-label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .score-value {
+            font-size: 1.5rem;
+            font-weight: bold;
         }
 
         #score {
             transition: color 0.3s ease, transform 0.3s ease, font-weight 0.3s ease;
+        }
+
+        .level-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #highScore {
+            color: #ffcc00;
+            transition: color 0.3s ease, transform 0.3s ease;
+        }
+
+        #level {
+            color: #00ff88;
+            font-size: 1rem;
+            transition: color 0.3s ease, transform 0.3s ease;
+        }
+
+        .level-bar {
+            width: 100px;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .level-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00cc66);
+            transition: width 0.3s ease;
         }
 
         .controls {
@@ -60,7 +111,23 @@
         <h1>🐍 贪吃蛇游戏</h1>
         <canvas id="gameCanvas" width="400" height="400"></canvas>
         <div class="score-board">
-            分数: <span id="score">0</span>
+            <div class="score-item">
+                <span class="score-label">当前分数</span>
+                <span class="score-value" id="score">0</span>
+            </div>
+            <div class="score-item">
+                <span class="score-label">最高分</span>
+                <span class="score-value" id="highScore">0</span>
+            </div>
+            <div class="score-item">
+                <span class="score-label">等级</span>
+                <div class="level-display">
+                    <span id="level">1</span>
+                    <div class="level-bar">
+                        <div class="level-progress" id="levelProgress"></div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="controls">
             <p>使用方向键 ↑ ↓ ← → 或 WASD 控制蛇的移动</p>
@@ -75,6 +142,9 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('highScore');
+        const levelElement = document.getElementById('level');
+        const levelProgressElement = document.getElementById('levelProgress');
 
         // ==================== 游戏配置 ====================
         const gridSize = 20;           // 每个网格的大小（像素）
@@ -90,10 +160,109 @@
         };
 
         // ==================== 游戏状态 ====================
-        let score = 0;
         let gameRunning = false;
         let gamePaused = false;
         let lastCollisionType = null;  // 记录最后一次碰撞类型
+
+        // ==================== 分数系统 ====================
+        class ScoreSystem {
+            constructor() {
+                this.score = 0;
+                this.highScore = this.loadHighScore();
+                this.level = 1;
+                this.levelThresholds = [0, 50, 100, 200, 300, 500, 800, 1200]; // 各等级分数阈值
+            }
+
+            // 从localStorage加载最高分
+            loadHighScore() {
+                const saved = localStorage.getItem('snakeHighScore');
+                return saved ? parseInt(saved, 10) : 0;
+            }
+
+            // 保存最高分到localStorage
+            saveHighScore() {
+                localStorage.setItem('snakeHighScore', this.highScore.toString());
+            }
+
+            // 重置分数
+            reset() {
+                this.score = 0;
+                this.level = 1;
+                this.updateDisplay();
+            }
+
+            // 增加分数
+            addScore(points) {
+                this.score += points;
+
+                // 检查是否刷新最高分
+                if (this.score > this.highScore) {
+                    this.highScore = this.score;
+                    this.saveHighScore();
+                    this.showNewHighScoreEffect();
+                }
+
+                // 更新等级
+                this.updateLevel();
+                this.updateDisplay();
+            }
+
+            // 获取当前等级进度百分比
+            getLevelProgress() {
+                const currentThreshold = this.levelThresholds[this.level - 1] || 0;
+                const nextThreshold = this.levelThresholds[this.level] || this.levelThresholds[this.levelThresholds.length - 1];
+                if (nextThreshold === currentThreshold) return 100;
+                const progress = ((this.score - currentThreshold) / (nextThreshold - currentThreshold)) * 100;
+                return Math.min(Math.max(progress, 0), 100);
+            }
+
+            // 更新等级
+            updateLevel() {
+                for (let i = this.levelThresholds.length - 1; i >= 0; i--) {
+                    if (this.score >= this.levelThresholds[i]) {
+                        if (this.level !== i + 1) {
+                            this.level = i + 1;
+                            this.showLevelUpEffect();
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // 更新界面显示
+            updateDisplay() {
+                scoreElement.textContent = this.score;
+                highScoreElement.textContent = this.highScore;
+                levelElement.textContent = this.level;
+                levelProgressElement.style.width = this.getLevelProgress() + '%';
+            }
+
+            // 显示新最高分效果
+            showNewHighScoreEffect() {
+                highScoreElement.style.color = '#ff4757';
+                highScoreElement.style.transform = 'scale(1.3)';
+                setTimeout(() => {
+                    highScoreElement.style.color = '#ffcc00';
+                    highScoreElement.style.transform = 'scale(1)';
+                }, 500);
+            }
+
+            // 显示升级效果
+            showLevelUpEffect() {
+                levelElement.style.color = '#ff6b6b';
+                levelElement.style.transform = 'scale(1.5)';
+                setTimeout(() => {
+                    levelElement.style.color = '#00ff88';
+                    levelElement.style.transform = 'scale(1)';
+                }, 600);
+            }
+        }
+
+        // 创建分数系统实例
+        const scoreSystem = new ScoreSystem();
+
+        // 初始化显示
+        scoreSystem.updateDisplay();
 
         // ==================== 方向常量 ====================
         const Direction = {
@@ -711,9 +880,8 @@ function showKeyFeedback(text, color = '#ffcc00') {
         function startGame() {
             gameRunning = true;
             gamePaused = false;
-            score = 0;
+            scoreSystem.reset();
             lastCollisionType = null;  // 清除碰撞类型记录
-            scoreElement.textContent = score;
 
             // 初始化蛇
             snake.init();
@@ -756,7 +924,7 @@ function showKeyFeedback(text, color = '#ffcc00') {
                 drawGameOverScreen();
             }, 500);
 
-            console.log('游戏结束，分数:', score, '碰撞类型:', lastCollisionType);
+            console.log('游戏结束，分数:', scoreSystem.score, '最高分:', scoreSystem.highScore, '碰撞类型:', lastCollisionType);
         }
 
         // ==================== 碰撞视觉效果 ====================
@@ -820,13 +988,19 @@ function showKeyFeedback(text, color = '#ffcc00') {
             }
 
             // 显示最终分数
-            renderer.drawText(`最终分数: ${score}`, canvas.width / 2, canvas.height / 2 + 20, {
+            renderer.drawText(`最终分数: ${scoreSystem.score}`, canvas.width / 2, canvas.height / 2 + 20, {
                 color: '#ffffff',
                 font: '22px Microsoft YaHei'
             });
 
+            // 显示最高分和等级
+            renderer.drawText(`最高分: ${scoreSystem.highScore} | 等级: ${scoreSystem.level}`, canvas.width / 2, canvas.height / 2 + 45, {
+                color: '#ffcc00',
+                font: '16px Microsoft YaHei'
+            });
+
             // 显示重新开始提示
-            renderer.drawText('按空格键重新开始', canvas.width / 2, canvas.height / 2 + 55, {
+            renderer.drawText('按空格键重新开始', canvas.width / 2, canvas.height / 2 + 75, {
                 color: '#00ff88',
                 font: '16px Microsoft YaHei'
             });
@@ -850,15 +1024,14 @@ function showKeyFeedback(text, color = '#ffcc00') {
                 // 蛇生长
                 snake.grow();
                 // 更新分数（每吃一个食物加10分）
-                score += 10;
-                scoreElement.textContent = score;
+                scoreSystem.addScore(10);
                 // 显示吃食物视觉效果
                 showEatEffect(food.x, food.y);
                 // 分数增加动画
                 animateScoreIncrease();
                 // 生成新食物
                 food.spawn(snake);
-                console.log('吃到食物！分数:', score);
+                console.log('吃到食物！分数:', scoreSystem.score, '等级:', scoreSystem.level);
             }
 
             // 更新发光效果帧数
