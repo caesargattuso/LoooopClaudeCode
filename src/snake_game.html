@@ -41,6 +41,11 @@
             color: #ffffff;
             font-size: 1.5rem;
             margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+
+        #score {
+            transition: color 0.3s ease, transform 0.3s ease, font-weight 0.3s ease;
         }
 
         .controls {
@@ -222,10 +227,19 @@
                 return this.body.some(segment => segment.x === x && segment.y === y);
             }
 
-            // 绘制蛇
+            // 绘制蛇（支持发光效果）
             draw(ctx) {
+                // 计算是否处于发光状态
+                const isGlowing = snakeGlowFrames > 0;
+
                 this.body.forEach((segment, index) => {
-                    const color = index === 0 ? colors.snakeHead : colors.snakeBody;
+                    // 发光时使用更亮的颜色
+                    let color;
+                    if (isGlowing) {
+                        color = index === 0 ? '#66ffaa' : '#33dd88';
+                    } else {
+                        color = index === 0 ? colors.snakeHead : colors.snakeBody;
+                    }
                     const radius = index === 0 ? 5 : 3; // 头部更圆润
 
                     // 计算像素位置
@@ -238,6 +252,13 @@
                     ctx.beginPath();
                     ctx.roundRect(px, py, size, size, radius);
                     ctx.fill();
+
+                    // 发光时添加光晕效果
+                    if (isGlowing && index === 0) {
+                        ctx.strokeStyle = '#88ffcc';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    }
 
                     // 为蛇头添加眼睛
                     if (index === 0) {
@@ -358,6 +379,101 @@
 
         // ==================== 创建食物实例 ====================
         const food = new Food();
+
+        // ==================== 吃食物视觉效果 ====================
+        let eatEffectParticles = [];
+        let scoreFlashTimeout = null;
+        let snakeGlowFrames = 0;
+
+        // 显示吃食物效果（星星粒子）
+        function showEatEffect(x, y) {
+            // 在食物位置生成星星粒子
+            const centerX = x * gridSize + gridSize / 2;
+            const centerY = y * gridSize + gridSize / 2;
+
+            // 创建8个星星粒子向四周扩散
+            for (let i = 0; i < 8; i++) {
+                const angle = (i * 45) * Math.PI / 180;
+                eatEffectParticles.push({
+                    x: centerX,
+                    y: centerY,
+                    vx: Math.cos(angle) * 3,
+                    vy: Math.sin(angle) * 3,
+                    life: 15,  // 粒子生命周期（帧数）
+                    size: 4,
+                    color: '#ffcc00'
+                });
+            }
+
+            // 触发蛇身发光效果
+            snakeGlowFrames = 6;
+        }
+
+        // 绘制吃食物粒子效果
+        function drawEatParticles() {
+            eatEffectParticles = eatEffectParticles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                p.size *= 0.9;
+
+                if (p.life > 0) {
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life / 15;
+                    ctx.beginPath();
+                    // 绘制星星形状
+                    drawStar(ctx, p.x, p.y, p.size);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        // 绘制星星形状
+        function drawStar(ctx, cx, cy, size) {
+            const spikes = 4;
+            const outerRadius = size;
+            const innerRadius = size / 2;
+
+            let rot = Math.PI / 2 * 3;
+            let x = cx;
+            let y = cy;
+            const step = Math.PI / spikes;
+
+            ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius;
+                y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+        }
+
+        // 分数增加动画效果
+        function animateScoreIncrease() {
+            scoreElement.style.color = '#ffcc00';
+            scoreElement.style.fontWeight = 'bold';
+            scoreElement.style.transform = 'scale(1.3)';
+
+            if (scoreFlashTimeout) {
+                clearTimeout(scoreFlashTimeout);
+            }
+
+            scoreFlashTimeout = setTimeout(() => {
+                scoreElement.style.color = '#ffffff';
+                scoreElement.style.fontWeight = 'normal';
+                scoreElement.style.transform = 'scale(1)';
+            }, 300);
+        }
 
         // ==================== 网格绘制函数 ====================
         function drawGrid() {
@@ -736,14 +852,25 @@ function showKeyFeedback(text, color = '#ffcc00') {
                 // 更新分数（每吃一个食物加10分）
                 score += 10;
                 scoreElement.textContent = score;
+                // 显示吃食物视觉效果
+                showEatEffect(food.x, food.y);
+                // 分数增加动画
+                animateScoreIncrease();
                 // 生成新食物
                 food.spawn(snake);
                 console.log('吃到食物！分数:', score);
+            }
+
+            // 更新发光效果帧数
+            if (snakeGlowFrames > 0) {
+                snakeGlowFrames--;
             }
         });
 
         gameLoop.onRender(() => {
             renderer.render();
+            // 绘制吃食物粒子效果
+            drawEatParticles();
         });
 
         // 初始化游戏
