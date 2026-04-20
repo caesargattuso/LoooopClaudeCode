@@ -1,6 +1,16 @@
 ---
 name: looop
 description: Claude Automated Development Toolkit - Decompose requirements documents into task lists and automatically execute in loops until project completion
+requires:
+  - claude-cli: Requires local Claude CLI installation
+  - git: Modifies git repository (commits changes)
+  - push: Optional git push to remote (--push flag)
+permissions:
+  - dangerous: Uses --dangerously-skip-permissions to bypass permission prompts
+  - write: Writes files to specified src directory
+  - git-commit: Automatically commits task completions
+  - git-push: Optional push with --push flag
+warning: This skill bypasses permission checks and automatically commits/pushes to git. Use with caution on trusted projects only.
 ---
 
 # Claude Automated Development Toolkit
