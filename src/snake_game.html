@@ -104,6 +104,63 @@
             color: #888;
             font-size: 0.9rem;
         }
+
+        .game-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .game-btn {
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        .game-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #00ff88, #00cc66);
+            color: #0f0f23;
+        }
+
+        .btn-start:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .btn-pause {
+            background: linear-gradient(135deg, #ffcc00, #ff9900);
+            color: #0f0f23;
+        }
+
+        .btn-pause:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 204, 0, 0.4);
+        }
+
+        .btn-restart {
+            background: linear-gradient(135deg, #ff6b6b, #ff4757);
+            color: #ffffff;
+        }
+
+        .btn-restart:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .game-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
@@ -133,6 +190,11 @@
             <p>使用方向键 ↑ ↓ ← → 或 WASD 控制蛇的移动</p>
             <p>按空格键开始/暂停游戏</p>
         </div>
+        <div class="game-buttons">
+            <button id="btnStart" class="game-btn btn-start">开始游戏</button>
+            <button id="btnPause" class="game-btn btn-pause" disabled>暂停</button>
+            <button id="btnRestart" class="game-btn btn-restart" disabled>重新开始</button>
+        </div>
     </div>
 
     <script>
@@ -145,6 +207,11 @@
         const highScoreElement = document.getElementById('highScore');
         const levelElement = document.getElementById('level');
         const levelProgressElement = document.getElementById('levelProgress');
+
+        // 获取按钮元素
+        const btnStart = document.getElementById('btnStart');
+        const btnPause = document.getElementById('btnPause');
+        const btnRestart = document.getElementById('btnRestart');
 
         // ==================== 游戏配置 ====================
         const gridSize = 20;           // 每个网格的大小（像素）
@@ -159,10 +226,84 @@
             text: '#ffffff'
         };
 
-        // ==================== 游戏状态 ====================
-        let gameRunning = false;
-        let gamePaused = false;
-        let lastCollisionType = null;  // 记录最后一次碰撞类型
+        // ==================== 游戏状态管理类 ====================
+        class GameState {
+            constructor() {
+                this.status = 'idle';  // idle, running, paused, ended
+                this.lastCollisionType = null;
+            }
+
+            // 状态判断方法
+            isIdle() { return this.status === 'idle'; }
+            isRunning() { return this.status === 'running'; }
+            isPaused() { return this.status === 'paused'; }
+            isEnded() { return this.status === 'ended'; }
+            isActive() { return this.status === 'running' || this.status === 'paused'; }
+
+            // 状态切换方法
+            start() {
+                if (this.isIdle() || this.isEnded()) {
+                    this.status = 'running';
+                    this.lastCollisionType = null;
+                    return true;
+                }
+                return false;
+            }
+
+            pause() {
+                if (this.isRunning()) {
+                    this.status = 'paused';
+                    return true;
+                }
+                return false;
+            }
+
+            resume() {
+                if (this.isPaused()) {
+                    this.status = 'running';
+                    return true;
+                }
+                return false;
+            }
+
+            togglePause() {
+                if (this.isRunning()) {
+                    return this.pause();
+                } else if (this.isPaused()) {
+                    return this.resume();
+                }
+                return false;
+            }
+
+            end(collisionType = null) {
+                if (this.isRunning() || this.isPaused()) {
+                    this.status = 'ended';
+                    this.lastCollisionType = collisionType;
+                    return true;
+                }
+                return false;
+            }
+
+            restart() {
+                this.status = 'running';
+                this.lastCollisionType = null;
+                return true;
+            }
+
+            // 获取状态描述文本
+            getStatusText() {
+                const texts = {
+                    'idle': '等待开始',
+                    'running': '游戏中',
+                    'paused': '已暂停',
+                    'ended': '游戏结束'
+                };
+                return texts[this.status] || '未知状态';
+            }
+        }
+
+        // 创建游戏状态实例
+        const gameState = new GameState();
 
         // ==================== 分数系统 ====================
         class ScoreSystem {
@@ -807,7 +948,7 @@
             // 空格键：开始/暂停游戏
             if (e.code === 'Space') {
                 e.preventDefault();
-                if (!gameRunning) {
+                if (gameState.isIdle() || gameState.isEnded()) {
                     startGame();
                 } else {
                     togglePause();
@@ -815,8 +956,8 @@
                 return;
             }
 
-            // 方向键控制（仅游戏运行中且未暂停时响应）
-            if (gameRunning && !gamePaused) {
+            // 方向键控制（仅游戏运行中时响应）
+            if (gameState.isRunning()) {
                 let newDirection = null;
 
                 // 方向键支持
@@ -854,6 +995,25 @@
             }
         });
 
+        // ==================== 按钮点击事件 ====================
+        btnStart.addEventListener('click', () => {
+            if (gameState.isIdle() || gameState.isEnded()) {
+                startGame();
+            }
+        });
+
+        btnPause.addEventListener('click', () => {
+            if (gameState.isActive()) {
+                togglePause();
+            }
+        });
+
+        btnRestart.addEventListener('click', () => {
+            if (!gameState.isIdle()) {
+                restartGame();
+            }
+        });
+
         // ==================== 按键反馈提示 ====================
 let keyFeedbackTimeout = null;
 
@@ -876,12 +1036,24 @@ function showKeyFeedback(text, color = '#ffcc00') {
     }, 500);
 }
 
+// ==================== 按钮状态更新 ====================
+function updateButtonStates() {
+    // 开始按钮：仅在 idle 或 ended 状态可用
+    btnStart.disabled = gameState.isRunning();
+    btnStart.textContent = gameState.isEnded() ? '重新开始' : '开始游戏';
+
+    // 暂停按钮：仅在 running 或 paused 状态可用
+    btnPause.disabled = !gameState.isActive();
+    btnPause.textContent = gameState.isPaused() ? '继续' : '暂停';
+
+    // 重新开始按钮：仅在游戏激活或结束时可用
+    btnRestart.disabled = gameState.isIdle();
+}
+
 // ==================== 游戏控制函数 ====================
         function startGame() {
-            gameRunning = true;
-            gamePaused = false;
+            gameState.start();
             scoreSystem.reset();
-            lastCollisionType = null;  // 清除碰撞类型记录
 
             // 初始化蛇
             snake.init();
@@ -893,27 +1065,53 @@ function showKeyFeedback(text, color = '#ffcc00') {
             renderer.addEntity(food);
 
             gameLoop.start();
-            console.log('游戏开始');
+            updateButtonStates();
+            console.log('游戏开始 - 状态:', gameState.getStatusText());
         }
 
         function togglePause() {
-            gamePaused = !gamePaused;
-            if (gamePaused) {
+            gameState.togglePause();
+            if (gameState.isPaused()) {
                 gameLoop.stop();
                 renderer.render();  // 保持当前画面
                 renderer.drawText('游戏暂停', canvas.width / 2, canvas.height / 2);
             } else {
                 gameLoop.start();
             }
-            console.log(gamePaused ? '游戏暂停' : '游戏继续');
+            updateButtonStates();
+            console.log(gameState.isPaused() ? '游戏暂停' : '游戏继续', '- 状态:', gameState.getStatusText());
+        }
+
+        function resumeGame() {
+            if (gameState.isPaused()) {
+                gameState.resume();
+                gameLoop.start();
+                updateButtonStates();
+                console.log('游戏继续 - 状态:', gameState.getStatusText());
+            }
+        }
+
+        function restartGame() {
+            gameState.restart();
+            scoreSystem.reset();
+
+            // 重新初始化蛇
+            snake.init();
+            renderer.clearEntities();
+            renderer.addEntity(snake);
+
+            // 重新初始化食物
+            food.spawn(snake);
+            renderer.addEntity(food);
+
+            gameLoop.start();
+            updateButtonStates();
+            console.log('游戏重新开始 - 状态:', gameState.getStatusText());
         }
 
         function gameOver(collisionType = null) {
-            gameRunning = false;
+            gameState.end(collisionType || snake.getCollisionType());
             gameLoop.stop();
-
-            // 记录碰撞类型
-            lastCollisionType = collisionType || snake.getCollisionType();
 
             // 显示碰撞闪烁效果
             showCollisionEffect();
@@ -924,7 +1122,8 @@ function showKeyFeedback(text, color = '#ffcc00') {
                 drawGameOverScreen();
             }, 500);
 
-            console.log('游戏结束，分数:', scoreSystem.score, '最高分:', scoreSystem.highScore, '碰撞类型:', lastCollisionType);
+            updateButtonStates();
+            console.log('游戏结束，分数:', scoreSystem.score, '最高分:', scoreSystem.highScore, '碰撞类型:', gameState.lastCollisionType, '- 状态:', gameState.getStatusText());
         }
 
         // ==================== 碰撞视觉效果 ====================
@@ -960,7 +1159,7 @@ function showKeyFeedback(text, color = '#ffcc00') {
 
             // 获取碰撞原因描述
             let collisionReason = '';
-            if (lastCollisionType === 'wall') {
+            if (gameState.lastCollisionType === 'wall') {
                 const wallDetail = snake.getWallCollisionDetail();
                 const wallNames = {
                     'left': '左边界',
@@ -969,7 +1168,7 @@ function showKeyFeedback(text, color = '#ffcc00') {
                     'bottom': '下边界'
                 };
                 collisionReason = `撞到${wallNames[wallDetail] || '墙壁'}！`;
-            } else if (lastCollisionType === 'self') {
+            } else if (gameState.lastCollisionType === 'self') {
                 collisionReason = '撞到自己的身体！';
             }
 
@@ -1000,7 +1199,7 @@ function showKeyFeedback(text, color = '#ffcc00') {
             });
 
             // 显示重新开始提示
-            renderer.drawText('按空格键重新开始', canvas.width / 2, canvas.height / 2 + 75, {
+            renderer.drawText('按空格键或点击按钮重新开始', canvas.width / 2, canvas.height / 2 + 75, {
                 color: '#00ff88',
                 font: '16px Microsoft YaHei'
             });

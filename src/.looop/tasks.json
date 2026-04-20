@@ -52,10 +52,10 @@
       "dependencies": [
         3
       ],
-      "status": "in_progress",
+      "status": "completed",
       "result": null,
       "issues": [],
-      "completed_at": null
+      "completed_at": "2026-04-20 17:57:52"
     },
     {
       "id": 5,
@@ -66,10 +66,10 @@
         2,
         3
       ],
-      "status": "pending",
+      "status": "completed",
       "result": null,
       "issues": [],
-      "completed_at": null
+      "completed_at": "2026-04-20 18:01:15"
     },
     {
       "id": 6,
@@ -79,10 +79,10 @@
       "dependencies": [
         3
       ],
-      "status": "pending",
+      "status": "completed",
       "result": null,
       "issues": [],
-      "completed_at": null
+      "completed_at": "2026-04-20 18:04:24"
     },
     {
       "id": 7,
@@ -93,10 +93,10 @@
         3,
         5
       ],
-      "status": "pending",
+      "status": "completed",
       "result": null,
       "issues": [],
-      "completed_at": null
+      "completed_at": "2026-04-20 18:08:51"
     },
     {
       "id": 8,
@@ -106,10 +106,10 @@
       "dependencies": [
         7
       ],
-      "status": "pending",
+      "status": "completed",
       "result": null,
       "issues": [],
-      "completed_at": null
+      "completed_at": "2026-04-20 18:13:18"
     },
     {
       "id": 9,
@@ -120,7 +120,7 @@
         3,
         6
       ],
-      "status": "pending",
+      "status": "in_progress",
       "result": null,
       "issues": [],
       "completed_at": null
