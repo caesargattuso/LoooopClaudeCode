@@ -58,7 +58,7 @@
             分数: <span id="score">0</span>
         </div>
         <div class="controls">
-            <p>使用方向键 ↑ ↓ ← → 控制蛇的移动</p>
+            <p>使用方向键 ↑ ↓ ← → 或 WASD 控制蛇的移动</p>
             <p>按空格键开始/暂停游戏</p>
         </div>
     </div>
@@ -136,7 +136,14 @@
 
                 if (!isOpposite) {
                     this.nextDirection = newDirection;
+                    return true;  // 方向设置成功
                 }
+                return false;  // 方向设置失败（反向移动）
+            }
+
+            // 设置方向并返回是否成功（带反馈）
+            setDirectionWithFeedback(newDirection) {
+                return this.setDirection(newDirection);
             }
 
             // 移动蛇
@@ -428,28 +435,66 @@
 
             // 方向键控制（仅游戏运行中且未暂停时响应）
             if (gameRunning && !gamePaused) {
+                let newDirection = null;
+
+                // 方向键支持
                 switch (e.code) {
                     case 'ArrowUp':
+                    case 'KeyW':    // WASD: W键向上
                         e.preventDefault();
-                        snake.setDirection(Direction.UP);
+                        newDirection = Direction.UP;
                         break;
                     case 'ArrowDown':
+                    case 'KeyS':    // WASD: S键向下
                         e.preventDefault();
-                        snake.setDirection(Direction.DOWN);
+                        newDirection = Direction.DOWN;
                         break;
                     case 'ArrowLeft':
+                    case 'KeyA':    // WASD: A键向左
                         e.preventDefault();
-                        snake.setDirection(Direction.LEFT);
+                        newDirection = Direction.LEFT;
                         break;
                     case 'ArrowRight':
+                    case 'KeyD':    // WASD: D键向右
                         e.preventDefault();
-                        snake.setDirection(Direction.RIGHT);
+                        newDirection = Direction.RIGHT;
                         break;
+                }
+
+                // 设置方向并显示反馈
+                if (newDirection) {
+                    const accepted = snake.setDirectionWithFeedback(newDirection);
+                    if (!accepted) {
+                        // 显示无效按键提示（180度反转被阻止）
+                        showKeyFeedback('禁止反向移动!', '#ff6b6b');
+                    }
                 }
             }
         });
 
-        // ==================== 游戏控制函数 ====================
+        // ==================== 按键反馈提示 ====================
+let keyFeedbackTimeout = null;
+
+function showKeyFeedback(text, color = '#ffcc00') {
+    // 清除之前的提示
+    if (keyFeedbackTimeout) {
+        clearTimeout(keyFeedbackTimeout);
+    }
+
+    // 显示反馈
+    const feedbackElement = document.querySelector('.controls');
+    const originalText = feedbackElement.innerHTML;
+
+    // 创建临时提示
+    feedbackElement.innerHTML = `<p style="color: ${color}; font-weight: bold;">${text}</p>`;
+
+    // 500ms后恢复原文本
+    keyFeedbackTimeout = setTimeout(() => {
+        feedbackElement.innerHTML = originalText;
+    }, 500);
+}
+
+// ==================== 游戏控制函数 ====================
         function startGame() {
             gameRunning = true;
             gamePaused = false;

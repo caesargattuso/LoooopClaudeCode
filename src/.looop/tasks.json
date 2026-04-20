@@ -39,10 +39,10 @@
       "dependencies": [
         2
       ],
-      "status": "in_progress",
+      "status": "completed",
       "result": null,
       "issues": [],
-      "completed_at": null
+      "completed_at": "2026-04-20 17:55:12"
     },
     {
       "id": 4,
@@ -52,7 +52,7 @@
       "dependencies": [
         3
       ],
-      "status": "pending",
+      "status": "in_progress",
       "result": null,
       "issues": [],
       "completed_at": null
