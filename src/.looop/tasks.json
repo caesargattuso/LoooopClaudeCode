@@ -133,10 +133,10 @@
       "dependencies": [
         9
       ],
-      "status": "in_progress",
+      "status": "completed",
       "result": null,
       "issues": [],
-      "completed_at": null
+      "completed_at": "2026-04-20 18:21:15"
     },
     {
       "id": 11,
@@ -146,7 +146,7 @@
       "dependencies": [
         8
       ],
-      "status": "pending",
+      "status": "in_progress",
       "result": null,
       "issues": [],
       "completed_at": null
