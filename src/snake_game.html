@@ -161,6 +161,63 @@
         .game-btn:active:not(:disabled) {
             transform: translateY(0);
         }
+
+        /* 难度选择样式 */
+        .difficulty-panel {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .difficulty-label {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .difficulty-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .difficulty-btn {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #2a2a4e;
+            color: #888;
+        }
+
+        .difficulty-btn:hover {
+            background: #3a3a6e;
+            color: #fff;
+        }
+
+        .difficulty-btn.active {
+            border-color: #00ff88;
+            color: #00ff88;
+            background: #1a1a3e;
+        }
+
+        .difficulty-btn.difficulty-slow.active {
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+
+        .difficulty-btn.difficulty-medium.active {
+            border-color: #ffcc00;
+            color: #ffcc00;
+        }
+
+        .difficulty-btn.difficulty-fast.active {
+            border-color: #ff6b6b;
+            color: #ff6b6b;
+        }
     </style>
 </head>
 <body>
@@ -194,6 +251,14 @@
             <button id="btnStart" class="game-btn btn-start">开始游戏</button>
             <button id="btnPause" class="game-btn btn-pause" disabled>暂停</button>
             <button id="btnRestart" class="game-btn btn-restart" disabled>重新开始</button>
+        </div>
+        <div class="difficulty-panel">
+            <span class="difficulty-label">难度选择：</span>
+            <div class="difficulty-buttons">
+                <button id="diffSlow" class="difficulty-btn difficulty-slow">慢速</button>
+                <button id="diffMedium" class="difficulty-btn difficulty-medium active">中速</button>
+                <button id="diffFast" class="difficulty-btn difficulty-fast">快速</button>
+            </div>
         </div>
     </div>
 
@@ -304,6 +369,89 @@
 
         // 创建游戏状态实例
         const gameState = new GameState();
+
+        // ==================== 难度系统 ====================
+        class DifficultySystem {
+            constructor() {
+                this.levels = {
+                    slow: { fps: 6, name: '慢速', color: '#4CAF50' },
+                    medium: { fps: 10, name: '中速', color: '#ffcc00' },
+                    fast: { fps: 15, name: '快速', color: '#ff6b6b' }
+                };
+                this.currentLevel = 'medium';
+                this.buttons = {};
+            }
+
+            // 获取当前FPS
+            getFPS() {
+                return this.levels[this.currentLevel].fps;
+            }
+
+            // 获取当前难度名称
+            getName() {
+                return this.levels[this.currentLevel].name;
+            }
+
+            // 获取当前难度颜色
+            getColor() {
+                return this.levels[this.currentLevel].color;
+            }
+
+            // 设置难度
+            setLevel(level) {
+                if (this.levels[level]) {
+                    this.currentLevel = level;
+                    this.updateButtonStates();
+                    // 如果游戏正在运行，动态调整速度
+                    if (gameState.isRunning() && gameLoop.running) {
+                        gameLoop.setSpeed(this.getFPS());
+                    }
+                    console.log('难度设置为:', this.getName(), 'FPS:', this.getFPS());
+                    return true;
+                }
+                return false;
+            }
+
+            // 初始化按钮引用
+            initButtons() {
+                this.buttons = {
+                    slow: document.getElementById('diffSlow'),
+                    medium: document.getElementById('diffMedium'),
+                    fast: document.getElementById('diffFast')
+                };
+                this.setupButtonEvents();
+                this.updateButtonStates();
+            }
+
+            // 设置按钮点击事件
+            setupButtonEvents() {
+                Object.keys(this.buttons).forEach(level => {
+                    this.buttons[level].addEventListener('click', () => {
+                        // 游戏进行中不允许切换难度
+                        if (gameState.isRunning()) {
+                            showKeyFeedback('游戏中无法切换难度!', '#ff6b6b');
+                            return;
+                        }
+                        this.setLevel(level);
+                    });
+                });
+            }
+
+            // 更新按钮状态
+            updateButtonStates() {
+                Object.keys(this.buttons).forEach(level => {
+                    const btn = this.buttons[level];
+                    if (btn) {
+                        btn.classList.toggle('active', level === this.currentLevel);
+                        // 游戏运行时禁用所有按钮
+                        btn.disabled = gameState.isRunning();
+                    }
+                });
+            }
+        }
+
+        // 创建难度系统实例
+        const difficultySystem = new DifficultySystem();
 
         // ==================== 分数系统 ====================
         class ScoreSystem {
@@ -935,12 +1083,14 @@
 
         // ==================== 初始化实例 ====================
         const renderer = new GameRenderer(canvas, ctx);
-        const gameLoop = new GameLoop(10);
+        const gameLoop = new GameLoop(difficultySystem.getFPS()); // 使用难度系统FPS
 
         // ==================== 初始化显示 ====================
         function init() {
             drawGrid();
             renderer.drawText('按空格键开始游戏', canvas.width / 2, canvas.height / 2);
+            // 初始化难度系统按钮
+            difficultySystem.initButtons();
         }
 
         // ==================== 键盘事件监听 ====================
@@ -1064,9 +1214,12 @@ function updateButtonStates() {
             food.spawn(snake);
             renderer.addEntity(food);
 
+            // 使用难度系统的FPS
+            gameLoop.setSpeed(difficultySystem.getFPS());
             gameLoop.start();
             updateButtonStates();
-            console.log('游戏开始 - 状态:', gameState.getStatusText());
+            difficultySystem.updateButtonStates();
+            console.log('游戏开始 - 状态:', gameState.getStatusText(), '- 难度:', difficultySystem.getName());
         }
 
         function togglePause() {
@@ -1079,6 +1232,7 @@ function updateButtonStates() {
                 gameLoop.start();
             }
             updateButtonStates();
+            difficultySystem.updateButtonStates(); // 暂停时更新难度按钮状态
             console.log(gameState.isPaused() ? '游戏暂停' : '游戏继续', '- 状态:', gameState.getStatusText());
         }
 
@@ -1104,9 +1258,12 @@ function updateButtonStates() {
             food.spawn(snake);
             renderer.addEntity(food);
 
+            // 使用难度系统的FPS
+            gameLoop.setSpeed(difficultySystem.getFPS());
             gameLoop.start();
             updateButtonStates();
-            console.log('游戏重新开始 - 状态:', gameState.getStatusText());
+            difficultySystem.updateButtonStates();
+            console.log('游戏重新开始 - 状态:', gameState.getStatusText(), '- 难度:', difficultySystem.getName());
         }
 
         function gameOver(collisionType = null) {
@@ -1123,6 +1280,7 @@ function updateButtonStates() {
             }, 500);
 
             updateButtonStates();
+            difficultySystem.updateButtonStates(); // 游戏结束后启用难度选择
             console.log('游戏结束，分数:', scoreSystem.score, '最高分:', scoreSystem.highScore, '碰撞类型:', gameState.lastCollisionType, '- 状态:', gameState.getStatusText());
         }
 
@@ -1198,8 +1356,14 @@ function updateButtonStates() {
                 font: '16px Microsoft YaHei'
             });
 
+            // 显示当前难度
+            renderer.drawText(`难度: ${difficultySystem.getName()}`, canvas.width / 2, canvas.height / 2 + 65, {
+                color: difficultySystem.getColor(),
+                font: '14px Microsoft YaHei'
+            });
+
             // 显示重新开始提示
-            renderer.drawText('按空格键或点击按钮重新开始', canvas.width / 2, canvas.height / 2 + 75, {
+            renderer.drawText('按空格键或点击按钮重新开始', canvas.width / 2, canvas.height / 2 + 90, {
                 color: '#00ff88',
                 font: '16px Microsoft YaHei'
             });
