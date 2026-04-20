@@ -88,6 +88,7 @@
         let score = 0;
         let gameRunning = false;
         let gamePaused = false;
+        let lastCollisionType = null;  // 记录最后一次碰撞类型
 
         // ==================== 方向常量 ====================
         const Direction = {
@@ -193,6 +194,27 @@
                 const head = this.getHead();
                 return head.x < 0 || head.x >= gridCount ||
                        head.y < 0 || head.y >= gridCount;
+            }
+
+            // 获取碰撞类型（返回 'wall', 'self', 或 null）
+            getCollisionType() {
+                if (this.checkWallCollision()) {
+                    return 'wall';
+                }
+                if (this.checkSelfCollision()) {
+                    return 'self';
+                }
+                return null;
+            }
+
+            // 获取撞墙的具体方向信息
+            getWallCollisionDetail() {
+                const head = this.getHead();
+                if (head.x < 0) return 'left';
+                if (head.x >= gridCount) return 'right';
+                if (head.y < 0) return 'top';
+                if (head.y >= gridCount) return 'bottom';
+                return null;
             }
 
             // 检查位置是否在蛇身上
@@ -574,6 +596,7 @@ function showKeyFeedback(text, color = '#ffcc00') {
             gameRunning = true;
             gamePaused = false;
             score = 0;
+            lastCollisionType = null;  // 清除碰撞类型记录
             scoreElement.textContent = score;
 
             // 初始化蛇
@@ -601,13 +624,96 @@ function showKeyFeedback(text, color = '#ffcc00') {
             console.log(gamePaused ? '游戏暂停' : '游戏继续');
         }
 
-        function gameOver() {
+        function gameOver(collisionType = null) {
             gameRunning = false;
             gameLoop.stop();
-            renderer.render();
-            renderer.drawText('游戏结束!', canvas.width / 2, canvas.height / 2 - 20, { color: '#ff6b6b' });
-            renderer.drawText(`最终分数: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
-            console.log('游戏结束，分数:', score);
+
+            // 记录碰撞类型
+            lastCollisionType = collisionType || snake.getCollisionType();
+
+            // 显示碰撞闪烁效果
+            showCollisionEffect();
+
+            // 延迟显示游戏结束界面（让玩家看到碰撞位置）
+            setTimeout(() => {
+                renderer.render();
+                drawGameOverScreen();
+            }, 500);
+
+            console.log('游戏结束，分数:', score, '碰撞类型:', lastCollisionType);
+        }
+
+        // ==================== 碰撞视觉效果 ====================
+        function showCollisionEffect() {
+            // 绘制碰撞位置高亮
+            const head = snake.getHead();
+            ctx.fillStyle = '#ff0000';
+            ctx.beginPath();
+
+            // 在蛇头位置绘制闪烁标记
+            const px = head.x * gridSize;
+            const py = head.y * gridSize;
+
+            // 绘制红色闪烁框
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(px, py, gridSize, gridSize);
+
+            // 绘制X标记
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(px + gridSize, py + gridSize);
+            ctx.moveTo(px + gridSize, py);
+            ctx.lineTo(px, py + gridSize);
+            ctx.stroke();
+        }
+
+        // ==================== 游戏结束界面 ====================
+        function drawGameOverScreen() {
+            // 半透明背景遮罩
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 获取碰撞原因描述
+            let collisionReason = '';
+            if (lastCollisionType === 'wall') {
+                const wallDetail = snake.getWallCollisionDetail();
+                const wallNames = {
+                    'left': '左边界',
+                    'right': '右边界',
+                    'top': '上边界',
+                    'bottom': '下边界'
+                };
+                collisionReason = `撞到${wallNames[wallDetail] || '墙壁'}！`;
+            } else if (lastCollisionType === 'self') {
+                collisionReason = '撞到自己的身体！';
+            }
+
+            // 显示游戏结束标题
+            renderer.drawText('游戏结束!', canvas.width / 2, canvas.height / 2 - 40, {
+                color: '#ff6b6b',
+                font: 'bold 28px Microsoft YaHei'
+            });
+
+            // 显示碰撞原因
+            if (collisionReason) {
+                renderer.drawText(collisionReason, canvas.width / 2, canvas.height / 2 - 10, {
+                    color: '#ffcc00',
+                    font: '18px Microsoft YaHei'
+                });
+            }
+
+            // 显示最终分数
+            renderer.drawText(`最终分数: ${score}`, canvas.width / 2, canvas.height / 2 + 20, {
+                color: '#ffffff',
+                font: '22px Microsoft YaHei'
+            });
+
+            // 显示重新开始提示
+            renderer.drawText('按空格键重新开始', canvas.width / 2, canvas.height / 2 + 55, {
+                color: '#00ff88',
+                font: '16px Microsoft YaHei'
+            });
         }
 
         // 设置游戏循环回调
@@ -615,9 +721,10 @@ function showKeyFeedback(text, color = '#ffcc00') {
             // 移动蛇
             snake.move();
 
-            // 检查碰撞
-            if (snake.checkWallCollision() || snake.checkSelfCollision()) {
-                gameOver();
+            // 检查碰撞（先检查墙壁，再检查自身）
+            const collisionType = snake.getCollisionType();
+            if (collisionType) {
+                gameOver(collisionType);
                 return;
             }
 

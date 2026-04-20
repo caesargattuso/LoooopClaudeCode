@@ -1,4 +1,30 @@
 ========================================
+Task #6: 实现碰撞检测
+Time: 2026-04-20 18:01:15
+Status: completed
+----------------------------------------
+Completed items:
+- 增强碰撞检测功能，添加碰撞类型检测：
+  - getCollisionType(): 返回 'wall', 'self', 或 null
+  - getWallCollisionDetail(): 返回撞墙具体方向（left/right/top/bottom）
+- 添加碰撞视觉效果：
+  - showCollisionEffect(): 在碰撞位置显示红色X标记
+  - 碰撞后延迟500ms显示游戏结束界面
+- 改进游戏结束界面：
+  - drawGameOverScreen(): 半透明遮罩背景
+  - 显示具体碰撞原因（撞墙/撞自身，包含方向详情）
+  - 显示最终分数和重新开始提示
+- 更新gameOver()函数接受碰撞类型参数
+- 添加lastCollisionType状态变量记录碰撞类型
+- 更新游戏循环使用新的碰撞检测方法
+----------------------------------------
+Remaining issues:
+- None
+----------------------------------------
+Manual intervention reason:
+- None
+========================================
+========================================
 Task #5: 实现食物生成系统
 Time: 2026-04-20 17:57:52
 Status: completed
@@ -99,7 +125,7 @@ Time: 2026-04-20 17:47:48
 Status: needs_manual
 ----------------------------------------
 Completed items:
-- 创建 snake_game.html 基础文件
+- 创建 snake_game.html 础文件
 - 包含完整的 HTML 骨架结构
 - 包含 CSS 样式区域（游戏容器、画布、分数板样式）
 - 包含 JavaScript 脚本区域占位（画布初始化、游戏状态变量、事件监听框架）
