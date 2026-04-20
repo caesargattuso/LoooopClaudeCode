@@ -89,6 +89,172 @@
         let gameRunning = false;
         let gamePaused = false;
 
+        // ==================== 方向常量 ====================
+        const Direction = {
+            UP: { x: 0, y: -1 },
+            DOWN: { x: 0, y: 1 },
+            LEFT: { x: -1, y: 0 },
+            RIGHT: { x: 1, y: 0 }
+        };
+
+        // ==================== 蛇类定义 ====================
+        class Snake {
+            constructor() {
+                this.body = [];           // 蛇身数组，存储各段位置 {x, y}
+                this.direction = Direction.RIGHT;  // 当前移动方向
+                this.nextDirection = Direction.RIGHT; // 下一帧的方向（防止快速按键反转）
+                this.growing = false;    // 是否正在生长
+            }
+
+            // 初始化蛇（在画布中央）
+            init() {
+                const centerX = Math.floor(gridCount / 2);
+                const centerY = Math.floor(gridCount / 2);
+
+                // 初始蛇身长度为3，水平排列
+                this.body = [
+                    { x: centerX, y: centerY },         // 头部
+                    { x: centerX - 1, y: centerY },    // 身体
+                    { x: centerX - 2, y: centerY }     // 尾部
+                ];
+                this.direction = Direction.RIGHT;
+                this.nextDirection = Direction.RIGHT;
+                this.growing = false;
+            }
+
+            // 获取蛇头位置
+            getHead() {
+                return this.body[0];
+            }
+
+            // 设置移动方向（防止180度反转）
+            setDirection(newDirection) {
+                // 检查是否为反向移动
+                const isOpposite =
+                    (this.direction.x + newDirection.x === 0) &&
+                    (this.direction.y + newDirection.y === 0);
+
+                if (!isOpposite) {
+                    this.nextDirection = newDirection;
+                }
+            }
+
+            // 移动蛇
+            move() {
+                // 应用缓冲的方向
+                this.direction = this.nextDirection;
+
+                // 计算新头部位置
+                const head = this.getHead();
+                const newHead = {
+                    x: head.x + this.direction.x,
+                    y: head.y + this.direction.y
+                };
+
+                // 在头部添加新位置
+                this.body.unshift(newHead);
+
+                // 如果没有在生长，移除尾部
+                if (!this.growing) {
+                    this.body.pop();
+                } else {
+                    this.growing = false;
+                }
+
+                return newHead;
+            }
+
+            // 生长（吃食物时调用）
+            grow() {
+                this.growing = true;
+            }
+
+            // 检查是否撞到自己
+            checkSelfCollision() {
+                const head = this.getHead();
+                // 从第1个元素开始检查（跳过头部自己）
+                for (let i = 1; i < this.body.length; i++) {
+                    if (head.x === this.body[i].x && head.y === this.body[i].y) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            // 检查是否撞墙
+            checkWallCollision() {
+                const head = this.getHead();
+                return head.x < 0 || head.x >= gridCount ||
+                       head.y < 0 || head.y >= gridCount;
+            }
+
+            // 检查位置是否在蛇身上
+            isOnSnake(x, y) {
+                return this.body.some(segment => segment.x === x && segment.y === y);
+            }
+
+            // 绘制蛇
+            draw(ctx) {
+                this.body.forEach((segment, index) => {
+                    const color = index === 0 ? colors.snakeHead : colors.snakeBody;
+                    const radius = index === 0 ? 5 : 3; // 头部更圆润
+
+                    // 计算像素位置
+                    const padding = 1;
+                    const size = gridSize - padding * 2;
+                    const px = segment.x * gridSize + padding;
+                    const py = segment.y * gridSize + padding;
+
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.roundRect(px, py, size, size, radius);
+                    ctx.fill();
+
+                    // 为蛇头添加眼睛
+                    if (index === 0) {
+                        this.drawEyes(ctx, segment);
+                    }
+                });
+            }
+
+            // 绘制蛇眼
+            drawEyes(ctx, head) {
+                const eyeSize = 3;
+                const eyeOffset = 5;
+                ctx.fillStyle = '#ffffff';
+
+                let eye1X, eye1Y, eye2X, eye2Y;
+                const centerX = head.x * gridSize + gridSize / 2;
+                const centerY = head.y * gridSize + gridSize / 2;
+
+                // 根据方向调整眼睛位置
+                if (this.direction === Direction.RIGHT) {
+                    eye1X = centerX + 3; eye1Y = centerY - eyeOffset;
+                    eye2X = centerX + 3; eye2Y = centerY + eyeOffset;
+                } else if (this.direction === Direction.LEFT) {
+                    eye1X = centerX - 3; eye1Y = centerY - eyeOffset;
+                    eye2X = centerX - 3; eye2Y = centerY + eyeOffset;
+                } else if (this.direction === Direction.UP) {
+                    eye1X = centerX - eyeOffset; eye1Y = centerY - 3;
+                    eye2X = centerX + eyeOffset; eye2Y = centerY - 3;
+                } else { // DOWN
+                    eye1X = centerX - eyeOffset; eye1Y = centerY + 3;
+                    eye2X = centerX + eyeOffset; eye2Y = centerY + 3;
+                }
+
+                // 绘制两只眼睛
+                ctx.beginPath();
+                ctx.arc(eye1X, eye1Y, eyeSize, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(eye2X, eye2Y, eyeSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // ==================== 创建蛇实例 ====================
+        const snake = new Snake();
+
         // ==================== 网格绘制函数 ====================
         function drawGrid() {
             // 绘制背景
@@ -249,12 +415,36 @@
 
         // ==================== 键盘事件监听 ====================
         document.addEventListener('keydown', (e) => {
+            // 空格键：开始/暂停游戏
             if (e.code === 'Space') {
                 e.preventDefault();
                 if (!gameRunning) {
                     startGame();
                 } else {
                     togglePause();
+                }
+                return;
+            }
+
+            // 方向键控制（仅游戏运行中且未暂停时响应）
+            if (gameRunning && !gamePaused) {
+                switch (e.code) {
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        snake.setDirection(Direction.UP);
+                        break;
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        snake.setDirection(Direction.DOWN);
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        snake.setDirection(Direction.LEFT);
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        snake.setDirection(Direction.RIGHT);
+                        break;
                 }
             }
         });
@@ -265,6 +455,12 @@
             gamePaused = false;
             score = 0;
             scoreElement.textContent = score;
+
+            // 初始化蛇
+            snake.init();
+            renderer.clearEntities();
+            renderer.addEntity(snake);
+
             gameLoop.start();
             console.log('游戏开始');
         }
@@ -273,6 +469,7 @@
             gamePaused = !gamePaused;
             if (gamePaused) {
                 gameLoop.stop();
+                renderer.render();  // 保持当前画面
                 renderer.drawText('游戏暂停', canvas.width / 2, canvas.height / 2);
             } else {
                 gameLoop.start();
@@ -280,14 +477,30 @@
             console.log(gamePaused ? '游戏暂停' : '游戏继续');
         }
 
-        // 设置游戏循环回调（后续任务将填充具体逻辑）
+        function gameOver() {
+            gameRunning = false;
+            gameLoop.stop();
+            renderer.render();
+            renderer.drawText('游戏结束!', canvas.width / 2, canvas.height / 2 - 20, { color: '#ff6b6b' });
+            renderer.drawText(`最终分数: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+            console.log('游戏结束，分数:', score);
+        }
+
+        // 设置游戏循环回调
         gameLoop.onUpdate(() => {
-            // 更新逻辑将在任务3实现
+            // 移动蛇
+            snake.move();
+
+            // 检查碰撞
+            if (snake.checkWallCollision() || snake.checkSelfCollision()) {
+                gameOver();
+            }
+
+            // 食物逻辑将在任务4实现
         });
 
         gameLoop.onRender(() => {
             renderer.render();
-            // 分数已在HTML中显示
         });
 
         // 初始化游戏
