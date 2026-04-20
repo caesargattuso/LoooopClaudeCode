@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贪吃蛇游戏</title>
+    <style>
+        /* 样式区域 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #1a1a2e;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        .game-container {
+            text-align: center;
+        }
+
+        h1 {
+            color: #00ff88;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+        }
+
+        #gameCanvas {
+            border: 3px solid #00ff88;
+            border-radius: 10px;
+            background-color: #0f0f23;
+        }
+
+        .score-board {
+            color: #ffffff;
+            font-size: 1.5rem;
+            margin-top: 15px;
+        }
+
+        .controls {
+            margin-top: 20px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🐍 贪吃蛇游戏</h1>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div class="score-board">
+            分数: <span id="score">0</span>
+        </div>
+        <div class="controls">
+            <p>使用方向键 ↑ ↓ ← → 控制蛇的移动</p>
+            <p>按空格键开始/暂停游戏</p>
+        </div>
+    </div>
+
+    <script>
+        // 脚本区域 - 游戏逻辑将在后续任务中实现
+
+        // 获取画布和上下文
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+
+        // 游戏配置
+        const gridSize = 20;
+        const gridCount = canvas.width / gridSize;
+
+        // 游戏状态
+        let score = 0;
+        let gameRunning = false;
+
+        // 初始化显示
+        function init() {
+            ctx.fillStyle = '#0f0f23';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff88';
+            ctx.font = '20px Microsoft YaHei';
+            ctx.textAlign = 'center';
+            ctx.fillText('按空格键开始游戏', canvas.width / 2, canvas.height / 2);
+        }
+
+        // 键盘事件监听
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                // 游戏控制逻辑将在后续实现
+                console.log('空格键按下');
+            }
+        });
+
+        // 初始化游戏
+        init();
+    </script>
+</body>
+</html>
