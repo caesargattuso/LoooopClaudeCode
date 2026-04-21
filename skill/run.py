@@ -182,6 +182,28 @@ def decompose_requirements(docs_dir: str, src_dir: str, push: bool = False) -> N
     if push:
         git_cmds += "\n   - git push"
 
+    # JSON template (escaped braces for f-string)
+    json_template = """{
+  "project": "Project name",
+  "created_at": "{today}",
+  "docs_dir": "{docs_dir}",
+  "src_dir": "{src_dir}",
+  "requirements_docs": ["{docs_dir}/xxx.md"],
+  "tasks": [
+    {{
+      "id": 1,
+      "name": "Task name",
+      "description": "Detailed description",
+      "priority": "high|medium|low",
+      "dependencies": [],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    }}
+  ]
+}""".format(today=today, docs_dir=docs_dir, src_dir=src_dir)
+
     prompt = f"""Please analyze all requirements documents in the "{docs_dir}" directory and decompose them into a specific development task list.
 
 Requirements document paths:
@@ -196,26 +218,7 @@ Requirements:
 3. Set reasonable task dependencies and priorities
 4. Save the task list to "{tasks_file}" file in the following format:
 
-{
-  "project": "Project name",
-  "created_at": "{today}",
-  "docs_dir": "{docs_dir}",
-  "src_dir": "{src_dir}",
-  "requirements_docs": ["{docs_dir}/xxx.md"],
-  "tasks": [
-    {
-      "id": 1,
-      "name": "Task name",
-      "description": "Detailed description",
-      "priority": "high|medium|low",
-      "dependencies": [],
-      "status": "pending",
-      "result": null,
-      "issues": [],
-      "completed_at": null
-    }
-  ]
-}
+{json_template}
 
 5. After saving, execute git operations:
 {git_cmds}
