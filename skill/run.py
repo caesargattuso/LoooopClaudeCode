@@ -18,6 +18,7 @@ from task_utils import (
     update_task_status, get_task_summary, mark_task_manual,
     STATUS_PENDING, STATUS_COMPLETED, STATUS_NEEDS_MANUAL
 )
+from logger import init_logger, get_logger, close_logger
 
 
 def get_looop_dir(src_dir: str) -> str:
@@ -51,30 +52,20 @@ def check_claude_installed() -> bool:
 
 
 def ensure_claude_md(src_dir: str) -> bool:
-    """Check if CLAUDE.md exists in project directory, if not run init to generate one
-
-    Args:
-        src_dir: Project source directory path
-
-    Returns:
-        True if CLAUDE.md exists (or was created successfully), False if failed
-    """
+    """Check if CLAUDE.md exists in project directory, if not run init"""
+    logger = get_logger()
     claude_md_path = os.path.join(src_dir, "CLAUDE.md")
 
-    # Check parent directory too (src might be a subdirectory)
+    # Check parent directory too
     parent_dir = os.path.dirname(src_dir)
     parent_claude_md = os.path.join(parent_dir, "CLAUDE.md")
 
     if os.path.exists(claude_md_path) or os.path.exists(parent_claude_md):
-        print(f"[Info] CLAUDE.md found, project context will be loaded automatically")
+        logger.info("CLAUDE.md found")
         return True
 
-    print(f"\n{'='*60}")
-    print("[Init] CLAUDE.md not found, initializing project documentation...")
-    print(f"{'='*60}\n")
-    sys.stdout.flush()
+    logger.warning("CLAUDE.md not found, initializing...")
 
-    # Run claude init command to generate CLAUDE.md
     try:
         result = subprocess.run(
             'claude init',
@@ -84,37 +75,24 @@ def ensure_claude_md(src_dir: str) -> bool:
             cwd=src_dir,
             timeout=120
         )
-
         if result.returncode == 0:
-            print("[Init] CLAUDE.md generated successfully")
-            print(result.stdout)
+            logger.info("CLAUDE.md generated")
             return True
         else:
-            print(f"[Warning] Init failed: {result.stderr}")
-            print("[Warning] Continuing without CLAUDE.md - project context may be limited")
-            return True  # Continue anyway, just with limited context
+            logger.warning(f"Init failed: {result.stderr}")
+            return True
     except subprocess.TimeoutExpired:
-        print("[Warning] Init command timed out")
-        print("[Warning] Continuing without CLAUDE.md - project context may be limited")
-        return True  # Continue anyway
+        logger.warning("Init timed out")
+        return True
     except Exception as e:
-        print(f"[Warning] Init error: {e}")
-        print("[Warning] Continuing without CLAUDE.md - project context may be limited")
-        return True  # Continue anyway
+        logger.warning(f"Init error: {e}")
+        return True
 
 
 def run_claude(prompt: str, cwd: str = None, timeout: int = 600) -> str:
-    """Invoke Claude CLI to execute command
-
-    Args:
-        prompt: The prompt to send to Claude
-        cwd: Working directory for Claude CLI (defaults to current directory)
-        timeout: Maximum execution time in seconds (default 10 minutes)
-    """
-    print(f"\n{'='*60}")
-    print("[Claude] Executing...")
-    print(f"{'='*60}\n")
-    sys.stdout.flush()
+    """Invoke Claude CLI to execute command"""
+    logger = get_logger()
+    logger.info("Claude executing...")
 
     env = os.environ.copy()
     if sys.platform == 'win32' and 'CLAUDE_CODE_GIT_BASH_PATH' not in env:
@@ -152,11 +130,10 @@ def run_claude(prompt: str, cwd: str = None, timeout: int = 600) -> str:
             if not line and process.poll() is not None:
                 break
             if line:
-                print(line, end='')
-                sys.stdout.flush()
+                logger.claude(line)  # Only log to file
                 output_lines.append(line)
     except KeyboardInterrupt:
-        print("\n[Interrupted] Terminating Claude process...")
+        logger.warning("Interrupted by user")
         process.terminate()
         process.wait(timeout=5)
         return "Execution interrupted by user"
@@ -164,14 +141,14 @@ def run_claude(prompt: str, cwd: str = None, timeout: int = 600) -> str:
     try:
         process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
-        print(f"\n[Timeout] Process exceeded {timeout} seconds, terminating...")
+        logger.warning(f"Timeout after {timeout}s")
         process.terminate()
         process.wait(timeout=5)
         return f"Execution timeout after {timeout} seconds"
 
     stderr = process.stderr.read()
     if process.returncode != 0:
-        print(f"\nError: {stderr}")
+        logger.error(f"Claude failed: {stderr}")
         return f"Execution failed: {stderr}"
 
     return ''.join(output_lines)
@@ -179,23 +156,23 @@ def run_claude(prompt: str, cwd: str = None, timeout: int = 600) -> str:
 
 def decompose_requirements(docs_dir: str, src_dir: str, push: bool = False) -> None:
     """Let Claude decompose requirements documents and write to tasks.json"""
+    logger = get_logger()
+
     if not os.path.exists(docs_dir):
-        print(f"Error: Requirements document directory does not exist - {docs_dir}")
+        logger.error(f"Docs directory not found: {docs_dir}")
         return
 
-    # Ensure CLAUDE.md exists for project context
     ensure_claude_md(src_dir)
-
     init_looop_dir(src_dir)
     tasks_file = get_tasks_file(src_dir)
 
     doc_files = []
     for f in os.listdir(docs_dir):
-        if f.endswith(('.md', '.txt', '.json')):
+        if f.endswith('.md') or f.endswith('.txt') or f.endswith('.json'):
             doc_files.append(os.path.join(docs_dir, f))
 
     if not doc_files:
-        print(f"No document files found in directory {docs_dir}")
+        logger.warning(f"No documents in {docs_dir}")
         return
 
     doc_list = "\n".join(f'"{f}"' for f in doc_files)
@@ -219,14 +196,14 @@ Requirements:
 3. Set reasonable task dependencies and priorities
 4. Save the task list to "{tasks_file}" file in the following format:
 
-{{
+{
   "project": "Project name",
   "created_at": "{today}",
   "docs_dir": "{docs_dir}",
   "src_dir": "{src_dir}",
   "requirements_docs": ["{docs_dir}/xxx.md"],
   "tasks": [
-    {{
+    {
       "id": 1,
       "name": "Task name",
       "description": "Detailed description",
@@ -236,9 +213,9 @@ Requirements:
       "result": null,
       "issues": [],
       "completed_at": null
-    }}
+    }
   ]
-}}
+}
 
 5. After saving, execute git operations:
 {git_cmds}
@@ -252,85 +229,94 @@ Please report the number of tasks after completion.
 def main():
     parser = argparse.ArgumentParser(description="Claude Automated Development Toolkit")
     parser.add_argument("--docs", "-D", metavar="DIR",
-                        help="Requirements document directory path (required when decomposing)")
+                        help="Requirements document directory path")
     parser.add_argument("--src", "-S", required=True, metavar="DIR",
-                        help="Code storage directory path (required)")
+                        help="Code storage directory path")
     parser.add_argument("--decompose", "-d", action="store_true",
-                        help="Decompose all requirements documents in the docs directory")
+                        help="Decompose requirements documents")
     parser.add_argument("--status", "-s", action="store_true",
                         help="Show current task status")
     parser.add_argument("--mark-manual", "-M", type=int, metavar="ID",
-                        help="Mark specified task as needing manual intervention")
+                        help="Mark task as needing manual intervention")
     parser.add_argument("--list-manual", "-L", action="store_true",
-                        help="List all tasks needing manual intervention")
+                        help="List tasks needing manual intervention")
     parser.add_argument("--resolve-manual", "-R", type=int, metavar="ID",
-                        help="Restore task from manual intervention to pending status")
+                        help="Restore task from manual intervention")
     parser.add_argument("--max-tasks", "-m", type=int, default=0,
-                        help="Maximum number of tasks to execute (0 means unlimited)")
+                        help="Maximum tasks to execute (0 = unlimited)")
     parser.add_argument("--push", "-P", action="store_true",
-                        help="Execute git push after task completion")
+                        help="Git push after task completion")
     args = parser.parse_args()
 
-    # Check Claude CLI installation before execution
-    if not args.status and not args.list_manual:
-        if not check_claude_installed():
-            print("Error: Claude CLI is not installed or not in PATH")
-            print("Please install Claude Code first: https://claude.ai/code")
-            return
-
+    # Initialize
     init_looop_dir(args.src)
+    looop_dir = get_looop_dir(args.src)
     tasks_file = get_tasks_file(args.src)
     progress_file = get_progress_file(args.src)
+    init_logger(looop_dir)
+    logger = get_logger()
 
-    # docs parameter is required when decomposing requirements
+    # Check Claude CLI
+    if not args.status and not args.list_manual:
+        if not check_claude_installed():
+            logger.error("Claude CLI not installed")
+            logger.info("Install: https://claude.ai/code")
+            close_logger()
+            return
+
+    # Decompose mode
     if args.decompose:
         if not args.docs:
-            print("Error: --docs parameter (requirements document directory) is required for decomposition")
-            print("Usage: python skill/run.py --docs <directory> --src <directory> --decompose")
+            logger.error("--docs required for decomposition")
+            close_logger()
             return
         if not os.path.exists(args.docs):
-            print(f"Error: Requirements document directory does not exist - {args.docs}")
+            logger.error(f"Docs directory not found: {args.docs}")
+            close_logger()
             return
         decompose_requirements(args.docs, args.src, args.push)
+        close_logger()
         return
 
+    # Status mode
     if args.status:
         data = load_tasks(tasks_file)
         summary = get_task_summary(data)
-        print(f"\nProject: {data.get('project', 'Unnamed')}")
-        print(f"Requirements document directory: {data.get('docs_dir', args.docs or 'N/A')}")
-        print(f"Code storage directory: {data.get('src_dir', args.src)}")
-        print(f"Task file: {tasks_file}")
-        print(f"Progress file: {progress_file}")
-        print(f"Total tasks: {summary['total']}")
-        print(f"Completed: {summary['completed']}")
-        print(f"In progress: {summary['in_progress']}")
-        print(f"Pending: {summary['pending']}")
-        print(f"Blocked: {summary['blocked']}")
-        print(f"Need manual: {summary['needs_manual']}")
+        logger.separator()
+        print(f"Project: {data.get('project', 'Unnamed')}")
+        print(f"Requirements: {data.get('docs_dir', 'N/A')}")
+        print(f"Source: {data.get('src_dir', args.src)}")
+        logger.blank()
+        print(f"Total: {summary['total']} | Done: {summary['completed']} | "
+              f"Pending: {summary['pending']} | Manual: {summary['needs_manual']}")
+        logger.separator()
+        close_logger()
         return
 
+    # Mark manual
     if args.mark_manual:
         data = load_tasks(tasks_file)
-        if mark_task_manual(data, args.mark_manual, "User manually marked", tasks_file):
-            print(f"Task #{args.mark_manual} has been marked as needing manual intervention")
+        if mark_task_manual(data, args.mark_manual, "User marked", tasks_file):
+            logger.info(f"Task #{args.mark_manual} marked for manual intervention")
         else:
-            print(f"Task #{args.mark_manual} not found")
+            logger.warning(f"Task #{args.mark_manual} not found")
+        close_logger()
         return
 
+    # List manual
     if args.list_manual:
         data = load_tasks(tasks_file)
         manual_tasks = [t for t in data["tasks"] if t["status"] == STATUS_NEEDS_MANUAL]
         if not manual_tasks:
-            print("No tasks needing manual intervention")
+            logger.info("No tasks need manual intervention")
         else:
-            print("\nTasks needing manual intervention:")
+            logger.info("Tasks needing manual intervention:")
             for t in manual_tasks:
                 print(f"  #{t['id']}: {t['name']}")
-                if t.get('manual_reason'):
-                    print(f"    Reason: {t['manual_reason']}")
+        close_logger()
         return
 
+    # Resolve manual
     if args.resolve_manual:
         data = load_tasks(tasks_file)
         for t in data["tasks"]:
@@ -339,136 +325,137 @@ def main():
                 if "manual_reason" in t:
                     del t["manual_reason"]
                 save_tasks(data, tasks_file)
-                print(f"Task #{args.resolve_manual} has been restored to pending status")
+                logger.info(f"Task #{args.resolve_manual} restored to pending")
+                close_logger()
                 return
-        print(f"Task #{args.resolve_manual} not found")
+        logger.warning(f"Task #{args.resolve_manual} not found")
+        close_logger()
         return
 
-    # Main loop: execute tasks - first check if tasks.json exists
+    # Main execution loop
     if not os.path.exists(tasks_file):
-        print(f"Error: Task file does not exist - {tasks_file}")
-        print("Please decompose requirements documents first:")
-        print(f"  python skill/run.py --docs <requirements_directory> --src {args.src} --decompose")
+        logger.error(f"Task file not found: {tasks_file}")
+        logger.info("Run --decompose first")
+        close_logger()
         return
 
     data = load_tasks(tasks_file)
     if not data.get("tasks"):
-        print("No tasks. Please use --decompose to decompose requirements documents first")
+        logger.warning("No tasks. Run --decompose first")
+        close_logger()
         return
 
-    # Ensure CLAUDE.md exists for project context before executing tasks
     ensure_claude_md(args.src)
 
+    summary = get_task_summary(data)
+    total = summary['total']
+    logger.info(f"Starting: {total} tasks")
+    logger.blank()
+
     task_count = 0
-    while True:
-        data = load_tasks(tasks_file)
-        task = get_next_task(data)
-
-        if task is None:
+    try:
+        while True:
+            data = load_tasks(tasks_file)
+            task = get_next_task(data)
             summary = get_task_summary(data)
-            if summary["pending"] > 0:
-                print("There are pending tasks but all have incomplete dependencies")
-            elif summary["needs_manual"] > 0:
-                print(f"There are {summary['needs_manual']} tasks needing manual intervention")
-                print("Use --list-manual to view, then --resolve-manual to restore after handling")
-            else:
-                print("All tasks completed!")
-            break
 
-        if args.max_tasks > 0 and task_count >= args.max_tasks:
-            print(f"Maximum task limit reached ({args.max_tasks})")
-            break
+            if task is None:
+                logger.progress(summary['completed'], total)
+                if summary["pending"] > 0:
+                    logger.warning("Pending tasks blocked by dependencies")
+                elif summary["needs_manual"] > 0:
+                    logger.warning(f"{summary['needs_manual']} tasks need manual intervention")
+                else:
+                    logger.info("All tasks completed!")
+                break
 
-        task_count += 1
-        print(f"\n{'#'*60}")
-        print(f"Task #{task['id']}: {task['name']}")
-        print(f"Priority: {task.get('priority', 'medium')}")
-        print(f"Description: {task.get('description', 'None')}")
-        print(f"{'#'*60}")
+            if args.max_tasks > 0 and task_count >= args.max_tasks:
+                logger.info(f"Max limit reached: {args.max_tasks}")
+                break
 
-        update_task_status(data, task["id"], "in_progress", tasks_file=tasks_file)
+            task_count += 1
+            logger.progress(summary['completed'], total, task['name'])
+            logger.task_start(task['id'], task['name'], task.get('priority', 'medium'))
 
-        # Only provide file path, let Claude decide whether to read
-        context_hint = ""
-        if os.path.exists(progress_file):
-            context_hint = f'\nProgress file path (can reference historical task records): "{progress_file}"'
+            update_task_status(data, task["id"], "in_progress", tasks_file=tasks_file)
 
-        today = __import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            context_hint = ""
+            if os.path.exists(progress_file):
+                context_hint = f'\nProgress file: "{progress_file}"'
 
-        git_cmds = f'   - git add all changed files\n   - git commit -m "Completed task #{task["id"]}: {task["name"]}"'
-        if args.push:
-            git_cmds += "\n   - git push"
+            now = __import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        prompt = f"""Please execute the following development task:
+            git_cmds = '- git add all\n- git commit -m "Task #{0}: {1}"'.format(task["id"], task["name"])
+            if args.push:
+                git_cmds += "\n- git push"
 
-Task name: {task['name']}
-Task description: {task.get('description', 'No description')}
+            prompt = f"""Execute task:
+
+Task: {task['name']}
+Description: {task.get('description', 'None')}
 Priority: {task.get('priority', 'medium')}
-Code storage directory: "{args.src}"{context_hint}
+Directory: "{args.src}"{context_hint}
 
 Requirements:
-1. Place all generated code files in "{args.src}/" directory (create if not exists)
-2. Complete the task development
-3. If the task cannot be completed automatically (needs manual decision, permission approval, external resources, etc.), mark status as needs_manual
-4. After completion, append this task summary to the beginning of "{progress_file}" file in the following format:
+1. Place files in "{args.src}/"
+2. Complete development
+3. If cannot complete automatically, mark needs_manual
+4. Append summary to "{progress_file}":
 
 ========================================
 Task #{task['id']}: {task['name']}
-Time: {today}
+Time: {now}
 Status: completed or needs_manual
 ----------------------------------------
-Completed items:
-- [List specific completed work]
+Done:
+- [items]
 ----------------------------------------
-Remaining issues:
-- [List remaining issues if any, write "None" if none]
+Issues:
+- [None or list]
 ----------------------------------------
-Manual intervention reason:
-- [Explain reason if manual intervention needed, write "None" if not]
+Manual reason:
+- [None or reason]
 ========================================
 
-5. If task is completed and there are file changes, execute git operations:
+5. Git operations if completed:
 {git_cmds}
 
-6. Mark status at the end of output:
+6. End output with:
 ---STATUS---
 completed or needs_manual
 ---END---
+"""
 
-Please start executing the task."""
+            output = run_claude(prompt, cwd=args.src)
 
-        output = run_claude(prompt, cwd=args.src)
-
-        # Parse status from output with robust error handling
-        final_status = STATUS_COMPLETED
-        try:
-            if "---STATUS---" in output and "---END---" in output:
-                status_part = output.split("---STATUS---", 1)[1]
-                if "---END---" in status_part:
-                    status_value = status_part.split("---END---", 1)[0].strip().lower()
-                    if status_value in ("needs_manual", "needs manual"):
-                        final_status = STATUS_NEEDS_MANUAL
-                else:
-                    print("Warning: Status marker found but ---END--- missing, assuming completed")
-            else:
-                # No status markers found - check if execution failed
-                if "Execution failed" in output or "Execution timeout" in output or "Execution interrupted" in output:
-                    print("Warning: Execution did not complete properly, marking as needs_manual")
+            final_status = STATUS_COMPLETED
+            try:
+                if "---STATUS---" in output and "---END---" in output:
+                    status_part = output.split("---STATUS---", 1)[1]
+                    if "---END---" in status_part:
+                        val = status_part.split("---END---", 1)[0].strip().lower()
+                        if val in ("needs_manual", "needs manual"):
+                            final_status = STATUS_NEEDS_MANUAL
+                elif "Execution failed" in output or "Execution timeout" in output:
                     final_status = STATUS_NEEDS_MANUAL
-        except Exception as e:
-            print(f"Warning: Failed to parse status from output: {e}")
-            final_status = STATUS_NEEDS_MANUAL
+            except Exception:
+                final_status = STATUS_NEEDS_MANUAL
 
-        data = load_tasks(tasks_file)
-        if final_status == STATUS_NEEDS_MANUAL:
-            mark_task_manual(data, task["id"], f"Needs manual intervention, see {progress_file} for details", tasks_file)
-            print(f"\nTask #{task['id']} has been marked as needing manual intervention")
-            print(f"See {progress_file} for details")
-        else:
-            update_task_status(data, task["id"], STATUS_COMPLETED, tasks_file=tasks_file)
+            data = load_tasks(tasks_file)
+            if final_status == STATUS_NEEDS_MANUAL:
+                mark_task_manual(data, task["id"], f"See {progress_file}", tasks_file)
+                logger.task_end(task['id'], task['name'], "needs_manual")
+                logger.info(f"See {progress_file}")
+            else:
+                update_task_status(data, task["id"], STATUS_COMPLETED, tasks_file=tasks_file)
+                logger.task_end(task['id'], task['name'], "completed")
 
-        summary = get_task_summary(load_tasks(tasks_file))
-        print(f"\nProgress: {summary['completed']}/{summary['total']} completed")
+            logger.blank()
+
+    except KeyboardInterrupt:
+        logger.warning("Interrupted")
+    finally:
+        close_logger()
 
 
 if __name__ == "__main__":
