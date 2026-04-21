@@ -50,11 +50,12 @@ def check_claude_installed() -> bool:
         return False
 
 
-def run_claude(prompt: str, timeout: int = 600) -> str:
+def run_claude(prompt: str, cwd: str = None, timeout: int = 600) -> str:
     """Invoke Claude CLI to execute command
 
     Args:
         prompt: The prompt to send to Claude
+        cwd: Working directory for Claude CLI (defaults to current directory)
         timeout: Maximum execution time in seconds (default 10 minutes)
     """
     print(f"\n{'='*60}")
@@ -84,7 +85,8 @@ def run_claude(prompt: str, timeout: int = 600) -> str:
         text=True,
         encoding="utf-8",
         shell=True,
-        env=env
+        env=env,
+        cwd=cwd
     )
 
     process.stdin.write(prompt)
@@ -188,7 +190,7 @@ Requirements:
 Please report the number of tasks after completion.
 """
 
-    run_claude(prompt)
+    run_claude(prompt, cwd=src_dir)
 
 
 def main():
@@ -376,7 +378,7 @@ completed or needs_manual
 
 Please start executing the task."""
 
-        output = run_claude(prompt)
+        output = run_claude(prompt, cwd=args.src)
 
         # Parse status from output with robust error handling
         final_status = STATUS_COMPLETED
