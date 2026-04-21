@@ -53,7 +53,6 @@ def check_claude_installed() -> bool:
 
 def ensure_claude_md(src_dir: str) -> bool:
     """Check if CLAUDE.md exists in project directory, if not run init"""
-    logger = get_logger()
     claude_md_path = os.path.join(src_dir, "CLAUDE.md")
 
     # Check parent directory too
@@ -61,10 +60,10 @@ def ensure_claude_md(src_dir: str) -> bool:
     parent_claude_md = os.path.join(parent_dir, "CLAUDE.md")
 
     if os.path.exists(claude_md_path) or os.path.exists(parent_claude_md):
-        logger.info("CLAUDE.md found")
+        print("[Info] CLAUDE.md found")
         return True
 
-    logger.warning("CLAUDE.md not found, initializing...")
+    print("[Warn] CLAUDE.md not found, initializing...")
 
     try:
         result = subprocess.run(
@@ -76,16 +75,16 @@ def ensure_claude_md(src_dir: str) -> bool:
             timeout=120
         )
         if result.returncode == 0:
-            logger.info("CLAUDE.md generated")
+            print("[Info] CLAUDE.md generated")
             return True
         else:
-            logger.warning(f"Init failed: {result.stderr}")
+            print(f"[Warn] Init failed: {result.stderr}")
             return True
     except subprocess.TimeoutExpired:
-        logger.warning("Init timed out")
+        print("[Warn] Init timed out")
         return True
     except Exception as e:
-        logger.warning(f"Init error: {e}")
+        print(f"[Warn] Init error: {e}")
         return True
 
 

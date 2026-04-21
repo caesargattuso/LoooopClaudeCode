@@ -32,6 +32,25 @@ All task-related files are stored in `src/.looop/` directory:
 |------|------|------|
 | tasks.json | `src/.looop/tasks.json` | Task list data |
 | progress.txt | `src/.looop/progress.txt` | Task progress records |
+| *.log | `src/.looop/*.log` | Task execution logs |
+
+## Log Files
+
+Task execution logs are created per task, named by task ID, name and timestamp:
+
+| Filename Pattern | When Created |
+|------|------|
+| `Task_#0_Decompose_YYYY-MM-DD_HH-MM-SS.log` | Requirements decomposition |
+| `Task_#N_任务名_YYYY-MM-DD_HH-MM-SS.log` | Each task execution |
+
+**Log content:**
+- Task start/end timestamps (second precision)
+- Complete Claude CLI output (JSON stream)
+- Debug information
+
+**No log files for:**
+- `--status` (status query)
+- `--mark-manual` / `--list-manual` / `--resolve-manual` (manual operations)
 
 ## Execute Script
 
