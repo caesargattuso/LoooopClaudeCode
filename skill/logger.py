@@ -1,17 +1,23 @@
 #!/usr/bin/env python3
-"""Logger Module - Global logger with file logging and console task output"""
+"""Logger Module - Global logger with per-task file logging and console task output"""
 import os
-import sys
+import re
 from datetime import datetime
 
 # Global logger instance
 _logger = None
 
 
-def init_logger(looop_dir: str):
-    """Initialize global logger"""
+def init_logger(looop_dir: str, task_id: int = None, task_name: str = None):
+    """Initialize global logger (one file per task or session)
+
+    Args:
+        looop_dir: .looop directory path
+        task_id: Task ID (optional, for task-specific log file)
+        task_name: Task name (optional, for task-specific log file)
+    """
     global _logger
-    _logger = Logger(looop_dir)
+    _logger = Logger(looop_dir, task_id, task_name)
     return _logger
 
 
@@ -31,33 +37,64 @@ def close_logger():
         _logger = None
 
 
-class Logger:
-    """Logger with file logging (detailed) and console output (task status)"""
+def sanitize_filename(name: str) -> str:
+    """Sanitize task name for use in filename"""
+    # Remove invalid characters
+    name = re.sub(r'[<>:"/\\|?*]', '', name)
+    # Replace spaces with underscores
+    name = name.replace(' ', '_')
+    # Limit length
+    return name[:30]
 
-    def __init__(self, looop_dir: str):
-        """Initialize logger with .looop directory path"""
+
+class Logger:
+    """Logger with per-task file logging and console task output"""
+
+    def __init__(self, looop_dir: str, task_id: int = None, task_name: str = None):
+        """Initialize logger with .looop directory path
+
+        Args:
+            looop_dir: .looop directory path
+            task_id: Task ID (optional, for task-specific log)
+            task_name: Task name (optional, for task-specific log)
+        """
         self.looop_dir = looop_dir
         os.makedirs(looop_dir, exist_ok=True)
 
-        # Log file: YYYY-MM-DD.log
-        today = datetime.now().strftime('%Y-%m-%d')
-        self.log_file = os.path.join(looop_dir, f"{today}.log")
+        # Log file name
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        if task_id is not None and task_name:
+            # Task-specific log: Task_#1_任务名称_2026-04-21_16-36.log
+            safe_name = sanitize_filename(task_name)
+            filename = f"Task_#{task_id}_{safe_name}_{timestamp}.log"
+        else:
+            # Session log (decompose, status, etc.)
+            filename = f"Session_{timestamp}.log"
 
-        # Open log file for appending
-        self._file = open(self.log_file, 'a', encoding='utf-8')
+        self.log_file = os.path.join(looop_dir, filename)
 
-        # Session start
-        self._log_file('INFO', 'Session started')
+        # Open log file for writing
+        self._file = open(self.log_file, 'w', encoding='utf-8')
+
+        # Log start
+        if task_id is not None:
+            self._log_file('INFO', f'Task #{task_id}: {task_name} - Started')
+        else:
+            self._log_file('INFO', 'Session started')
 
     def close(self):
         """Close log file"""
-        self._log_file('INFO', 'Session ended')
+        self._log_file('INFO', 'Ended')
         self._file.close()
+
+    def get_log_file(self):
+        """Return log file path"""
+        return self.log_file
 
     def _log_file(self, level: str, msg: str):
         """Write to log file with timestamp (second precision)"""
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self._file.write(f"{timestamp} [{level}] {msg}\n")
+        ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self._file.write(f"{ts} [{level}] {msg}\n")
         self._file.flush()
 
     def _color(self, text: str, code: str) -> str:

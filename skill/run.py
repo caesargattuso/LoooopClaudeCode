@@ -124,14 +124,24 @@ def run_claude(prompt: str, cwd: str = None, timeout: int = 600) -> str:
     process.stdin.close()
 
     output_lines = []
+    spinner_chars = ['.', '..', '...']
+    spinner_idx = 0
+    dots_printed = 0
+
     try:
         while True:
             line = process.stdout.readline()
             if not line and process.poll() is not None:
                 break
             if line:
-                logger.claude(line)  # Only log to file
+                logger.claude(line)  # Log to file
                 output_lines.append(line)
+                # Show progress dots (real-time feedback)
+                dots_printed += 1
+                if dots_printed % 10 == 0:  # Every 10 lines
+                    print('.', end='', flush=True)
+                    if dots_printed % 50 == 0:  # Line break every 50 dots
+                        print()
     except KeyboardInterrupt:
         logger.warning("Interrupted by user")
         process.terminate()
@@ -151,15 +161,24 @@ def run_claude(prompt: str, cwd: str = None, timeout: int = 600) -> str:
         logger.error(f"Claude failed: {stderr}")
         return f"Execution failed: {stderr}"
 
+    # Clear progress dots and show completion
+    if dots_printed > 0:
+        print()  # New line after dots
+    logger.info("Claude completed")
+
     return ''.join(output_lines)
 
 
 def decompose_requirements(docs_dir: str, src_dir: str, push: bool = False) -> None:
     """Let Claude decompose requirements documents and write to tasks.json"""
+    # Create task-specific logger for decompose
+    looop_dir = get_looop_dir(src_dir)
+    init_logger(looop_dir, task_id=0, task_name="Decompose")
     logger = get_logger()
 
     if not os.path.exists(docs_dir):
         logger.error(f"Docs directory not found: {docs_dir}")
+        close_logger()
         return
 
     ensure_claude_md(src_dir)
@@ -173,6 +192,7 @@ def decompose_requirements(docs_dir: str, src_dir: str, push: bool = False) -> N
 
     if not doc_files:
         logger.warning(f"No documents in {docs_dir}")
+        close_logger()
         return
 
     doc_list = "\n".join(f'"{f}"' for f in doc_files)
@@ -182,8 +202,8 @@ def decompose_requirements(docs_dir: str, src_dir: str, push: bool = False) -> N
     if push:
         git_cmds += "\n   - git push"
 
-    # JSON template (escaped braces for f-string)
-    json_template = """{
+    # Build JSON example string
+    json_example = f''' {{
   "project": "Project name",
   "created_at": "{today}",
   "docs_dir": "{docs_dir}",
@@ -202,7 +222,7 @@ def decompose_requirements(docs_dir: str, src_dir: str, push: bool = False) -> N
       "completed_at": null
     }}
   ]
-}""".format(today=today, docs_dir=docs_dir, src_dir=src_dir)
+}}'''
 
     prompt = f"""Please analyze all requirements documents in the "{docs_dir}" directory and decompose them into a specific development task list.
 
@@ -218,7 +238,7 @@ Requirements:
 3. Set reasonable task dependencies and priorities
 4. Save the task list to "{tasks_file}" file in the following format:
 
-{json_template}
+{json_example}
 
 5. After saving, execute git operations:
 {git_cmds}
@@ -227,6 +247,7 @@ Please report the number of tasks after completion.
 """
 
     run_claude(prompt, cwd=src_dir)
+    close_logger()
 
 
 def main():
@@ -251,59 +272,35 @@ def main():
                         help="Git push after task completion")
     args = parser.parse_args()
 
-    # Initialize
+    # Initialize directories
     init_looop_dir(args.src)
     looop_dir = get_looop_dir(args.src)
     tasks_file = get_tasks_file(args.src)
     progress_file = get_progress_file(args.src)
-    init_logger(looop_dir)
-    logger = get_logger()
 
-    # Check Claude CLI
-    if not args.status and not args.list_manual:
-        if not check_claude_installed():
-            logger.error("Claude CLI not installed")
-            logger.info("Install: https://claude.ai/code")
-            close_logger()
-            return
-
-    # Decompose mode
-    if args.decompose:
-        if not args.docs:
-            logger.error("--docs required for decomposition")
-            close_logger()
-            return
-        if not os.path.exists(args.docs):
-            logger.error(f"Docs directory not found: {args.docs}")
-            close_logger()
-            return
-        decompose_requirements(args.docs, args.src, args.push)
-        close_logger()
-        return
+    # === Non-task operations: direct console output, no log file ===
 
     # Status mode
     if args.status:
         data = load_tasks(tasks_file)
         summary = get_task_summary(data)
-        logger.separator()
+        print("=" * 60)
         print(f"Project: {data.get('project', 'Unnamed')}")
         print(f"Requirements: {data.get('docs_dir', 'N/A')}")
         print(f"Source: {data.get('src_dir', args.src)}")
-        logger.blank()
+        print()
         print(f"Total: {summary['total']} | Done: {summary['completed']} | "
               f"Pending: {summary['pending']} | Manual: {summary['needs_manual']}")
-        logger.separator()
-        close_logger()
+        print("=" * 60)
         return
 
     # Mark manual
     if args.mark_manual:
         data = load_tasks(tasks_file)
         if mark_task_manual(data, args.mark_manual, "User marked", tasks_file):
-            logger.info(f"Task #{args.mark_manual} marked for manual intervention")
+            print(f"[Done] Task #{args.mark_manual} marked for manual intervention")
         else:
-            logger.warning(f"Task #{args.mark_manual} not found")
-        close_logger()
+            print(f"[Warn] Task #{args.mark_manual} not found")
         return
 
     # List manual
@@ -311,12 +308,11 @@ def main():
         data = load_tasks(tasks_file)
         manual_tasks = [t for t in data["tasks"] if t["status"] == STATUS_NEEDS_MANUAL]
         if not manual_tasks:
-            logger.info("No tasks need manual intervention")
+            print("[Info] No tasks need manual intervention")
         else:
-            logger.info("Tasks needing manual intervention:")
+            print("[Info] Tasks needing manual intervention:")
             for t in manual_tasks:
                 print(f"  #{t['id']}: {t['name']}")
-        close_logger()
         return
 
     # Resolve manual
@@ -328,32 +324,47 @@ def main():
                 if "manual_reason" in t:
                     del t["manual_reason"]
                 save_tasks(data, tasks_file)
-                logger.info(f"Task #{args.resolve_manual} restored to pending")
-                close_logger()
+                print(f"[Done] Task #{args.resolve_manual} restored to pending")
                 return
-        logger.warning(f"Task #{args.resolve_manual} not found")
-        close_logger()
+        print(f"[Warn] Task #{args.resolve_manual} not found")
+        return
+
+    # === Task execution operations: create log file ===
+
+    # Check Claude CLI
+    if not check_claude_installed():
+        print("[Error] Claude CLI not installed")
+        print("[Info] Install: https://claude.ai/code")
+        return
+
+    # Decompose mode
+    if args.decompose:
+        if not args.docs:
+            print("[Error] --docs required for decomposition")
+            return
+        if not os.path.exists(args.docs):
+            print(f"[Error] Docs directory not found: {args.docs}")
+            return
+        decompose_requirements(args.docs, args.src, args.push)
         return
 
     # Main execution loop
     if not os.path.exists(tasks_file):
-        logger.error(f"Task file not found: {tasks_file}")
-        logger.info("Run --decompose first")
-        close_logger()
+        print(f"[Error] Task file not found: {tasks_file}")
+        print("[Info] Run --decompose first")
         return
 
     data = load_tasks(tasks_file)
     if not data.get("tasks"):
-        logger.warning("No tasks. Run --decompose first")
-        close_logger()
+        print("[Warn] No tasks. Run --decompose first")
         return
 
     ensure_claude_md(args.src)
 
     summary = get_task_summary(data)
     total = summary['total']
-    logger.info(f"Starting: {total} tasks")
-    logger.blank()
+    print(f"[Info] Starting: {total} tasks")
+    print()
 
     task_count = 0
     try:
@@ -363,20 +374,25 @@ def main():
             summary = get_task_summary(data)
 
             if task is None:
-                logger.progress(summary['completed'], total)
+                print(f"[=====>          ] {summary['completed']}/{total} ({int(summary['completed']/total*100 if total > 0 else 0)}%)")
                 if summary["pending"] > 0:
-                    logger.warning("Pending tasks blocked by dependencies")
+                    print("[Warn] Pending tasks blocked by dependencies")
                 elif summary["needs_manual"] > 0:
-                    logger.warning(f"{summary['needs_manual']} tasks need manual intervention")
+                    print(f"[Warn] {summary['needs_manual']} tasks need manual intervention")
                 else:
-                    logger.info("All tasks completed!")
+                    print("[Info] All tasks completed!")
                 break
 
             if args.max_tasks > 0 and task_count >= args.max_tasks:
-                logger.info(f"Max limit reached: {args.max_tasks}")
+                print(f"[Info] Max limit reached: {args.max_tasks}")
                 break
 
             task_count += 1
+
+            # Create task-specific logger
+            init_logger(looop_dir, task['id'], task['name'])
+            logger = get_logger()
+
             logger.progress(summary['completed'], total, task['name'])
             logger.task_start(task['id'], task['name'], task.get('priority', 'medium'))
 
@@ -453,12 +469,10 @@ completed or needs_manual
                 update_task_status(data, task["id"], STATUS_COMPLETED, tasks_file=tasks_file)
                 logger.task_end(task['id'], task['name'], "completed")
 
-            logger.blank()
+            close_logger()
 
     except KeyboardInterrupt:
-        logger.warning("Interrupted")
-    finally:
-        close_logger()
+        print("[Warn] Interrupted")
 
 
 if __name__ == "__main__":
