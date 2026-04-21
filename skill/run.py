@@ -50,6 +50,59 @@ def check_claude_installed() -> bool:
         return False
 
 
+def ensure_claude_md(src_dir: str) -> bool:
+    """Check if CLAUDE.md exists in project directory, if not run init to generate one
+
+    Args:
+        src_dir: Project source directory path
+
+    Returns:
+        True if CLAUDE.md exists (or was created successfully), False if failed
+    """
+    claude_md_path = os.path.join(src_dir, "CLAUDE.md")
+
+    # Check parent directory too (src might be a subdirectory)
+    parent_dir = os.path.dirname(src_dir)
+    parent_claude_md = os.path.join(parent_dir, "CLAUDE.md")
+
+    if os.path.exists(claude_md_path) or os.path.exists(parent_claude_md):
+        print(f"[Info] CLAUDE.md found, project context will be loaded automatically")
+        return True
+
+    print(f"\n{'='*60}")
+    print("[Init] CLAUDE.md not found, initializing project documentation...")
+    print(f"{'='*60}\n")
+    sys.stdout.flush()
+
+    # Run claude init command to generate CLAUDE.md
+    try:
+        result = subprocess.run(
+            'claude init',
+            capture_output=True,
+            text=True,
+            shell=True,
+            cwd=src_dir,
+            timeout=120
+        )
+
+        if result.returncode == 0:
+            print("[Init] CLAUDE.md generated successfully")
+            print(result.stdout)
+            return True
+        else:
+            print(f"[Warning] Init failed: {result.stderr}")
+            print("[Warning] Continuing without CLAUDE.md - project context may be limited")
+            return True  # Continue anyway, just with limited context
+    except subprocess.TimeoutExpired:
+        print("[Warning] Init command timed out")
+        print("[Warning] Continuing without CLAUDE.md - project context may be limited")
+        return True  # Continue anyway
+    except Exception as e:
+        print(f"[Warning] Init error: {e}")
+        print("[Warning] Continuing without CLAUDE.md - project context may be limited")
+        return True  # Continue anyway
+
+
 def run_claude(prompt: str, cwd: str = None, timeout: int = 600) -> str:
     """Invoke Claude CLI to execute command
 
@@ -129,6 +182,9 @@ def decompose_requirements(docs_dir: str, src_dir: str, push: bool = False) -> N
     if not os.path.exists(docs_dir):
         print(f"Error: Requirements document directory does not exist - {docs_dir}")
         return
+
+    # Ensure CLAUDE.md exists for project context
+    ensure_claude_md(src_dir)
 
     init_looop_dir(src_dir)
     tasks_file = get_tasks_file(src_dir)
@@ -299,6 +355,9 @@ def main():
     if not data.get("tasks"):
         print("No tasks. Please use --decompose to decompose requirements documents first")
         return
+
+    # Ensure CLAUDE.md exists for project context before executing tasks
+    ensure_claude_md(args.src)
 
     task_count = 0
     while True:
