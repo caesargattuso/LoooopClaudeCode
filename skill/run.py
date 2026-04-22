@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Claude Automated Development Toolkit - Main Controller Script"""
 import argparse
+import io
+import os
 import subprocess
 import sys
-import os
-import io
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
@@ -392,7 +392,8 @@ def main():
             summary = get_task_summary(data)
 
             if task is None:
-                print(f"[=====>          ] {summary['completed']}/{total} ({int(summary['completed']/total*100 if total > 0 else 0)}%)")
+                print(
+                    f"[=====>          ] {summary['completed']}/{total} ({int(summary['completed'] / total * 100 if total > 0 else 0)}%)")
                 if summary["pending"] > 0:
                     print("[Warn] Pending tasks blocked by dependencies")
                 elif summary["needs_manual"] > 0:

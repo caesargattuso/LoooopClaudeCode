@@ -15,43 +15,47 @@ warning: This skill bypasses permission checks and automatically commits/pushes 
 
 # Claude Automated Development Toolkit
 
-You are an automated development assistant responsible for decomposing project requirements documents into executable task lists and automatically executing each task in loops until the project is complete.
+You are an automated development assistant responsible for decomposing project requirements documents into executable
+task lists and automatically executing each task in loops until the project is complete.
 
 ## Parameters
 
-| Parameter | Required When | Description |
-|------|---------|------|
-| `--docs <DIR>` | Decomposing requirements | Requirements document directory path |
-| `--doc <FILE>` | Decomposing single doc | Single requirements document file path |
-| `--src <DIR>` | Always required | Code storage directory path |
+| Parameter      | Required When            | Description                            |
+|----------------|--------------------------|----------------------------------------|
+| `--docs <DIR>` | Decomposing requirements | Requirements document directory path   |
+| `--doc <FILE>` | Decomposing single doc   | Single requirements document file path |
+| `--src <DIR>`  | Always required          | Code storage directory path            |
 
-**Note:** `--docs` and `--doc` are mutually exclusive for decomposition. Use `--doc` when you have a single requirements file, or `--docs` when you have multiple files in a directory.
+**Note:** `--docs` and `--doc` are mutually exclusive for decomposition. Use `--doc` when you have a single requirements
+file, or `--docs` when you have multiple files in a directory.
 
 ## File Storage Location
 
-All task-related files are stored in `src/.looop/` directory:
+All task-related files are stored in `<src_dir>/.looop/` directory:
 
-| File | Path | Description |
-|------|------|------|
-| tasks.json | `src/.looop/tasks.json` | Task list data |
-| progress.txt | `src/.looop/progress.txt` | Task progress records |
-| *.log | `src/.looop/*.log` | Task execution logs |
+| File         | Path                            | Description           |
+|--------------|---------------------------------|-----------------------|
+| tasks.json   | `<src_dir>/.looop/tasks.json`   | Task list data        |
+| progress.txt | `<src_dir>/.looop/progress.txt` | Task progress records |
+| *.log        | `<src_dir>/.looop/*.log`        | Task execution logs   |
 
 ## Log Files
 
 Task execution logs are created per task, named by task ID, name and timestamp:
 
-| Filename Pattern                            | When Created |
-|---------------------------------------------|------|
+| Filename Pattern                            | When Created               |
+|---------------------------------------------|----------------------------|
 | `Task_#0_Decompose_YYYY-MM-DD_HH-MM-SS.log` | Requirements decomposition |
-| `Task_#N_TaskName_YYYY-MM-DD_HH-MM-SS.log`  | Each task execution |
+| `Task_#N_TaskName_YYYY-MM-DD_HH-MM-SS.log`  | Each task execution        |
 
 **Log content:**
+
 - Task start/end timestamps (second precision)
 - Complete Claude CLI output (JSON stream)
 - Debug information
 
 **No log files for:**
+
 - `--status` (status query)
 - `--mark-manual` / `--list-manual` / `--resolve-manual` (manual operations)
 
@@ -72,21 +76,24 @@ cd <skill_directory> && python run.py --src <DIR> [--docs <DIR> | --doc <FILE>] 
 **Single file mode:** `python run.py --doc <requirements_file> --src <code_dir> --decompose`
 
 The script will automatically:
-1. Create `src/.looop/` directory
+
+1. Create `<src_dir>/.looop/` directory
 2. Read documents (all files in directory or single specified file)
 3. Call Claude to analyze and decompose into independent small tasks
 4. Set ID, name, description, priority, dependencies for each task
-5. Save task list to `src/.looop/tasks.json`
+5. Save task list to `<src_dir>/.looop/tasks.json`
 
 ### Phase 2: Task Execution (only requires src)
 
 Command: `python run.py --src <code_dir>`
 
-The script will first check if `src/.looop/tasks.json` exists:
+The script will first check if `<src_dir>/.looop/tasks.json` exists:
+
 - Not exists → Prompt to run `--decompose` first
 - Exists → Automatically execute tasks in loops
 
 Execution process:
+
 1. Select next executable task from tasks.json
 2. Call Claude to execute task, code goes into src directory
 3. Record progress to progress.txt
@@ -95,15 +102,15 @@ Execution process:
 
 ## Optional Parameters
 
-| Parameter | Short | Description |
-|------|------|------|
-| `--decompose` | `-d` | Decompose requirements documents into task list |
-| `--status` | `-s` | View task status statistics |
-| `--max-tasks <N>` | `-m <N>` | Maximum N tasks to execute |
-| `--push` | `-P` | Execute git push after completion |
-| `--mark-manual <ID>` | `-M <ID>` | Mark task as needing manual intervention |
-| `--list-manual` | `-L` | List tasks needing manual intervention |
-| `--resolve-manual <ID>` | `-R <ID>` | Restore task to pending status |
+| Parameter               | Short     | Description                                     |
+|-------------------------|-----------|-------------------------------------------------|
+| `--decompose`           | `-d`      | Decompose requirements documents into task list |
+| `--status`              | `-s`      | View task status statistics                     |
+| `--max-tasks <N>`       | `-m <N>`  | Maximum N tasks to execute                      |
+| `--push`                | `-P`      | Execute git push after completion               |
+| `--mark-manual <ID>`    | `-M <ID>` | Mark task as needing manual intervention        |
+| `--list-manual`         | `-L`      | List tasks needing manual intervention          |
+| `--resolve-manual <ID>` | `-R <ID>` | Restore task to pending status                  |
 
 ## Usage Examples
 
@@ -132,7 +139,9 @@ python run.py --src src --max-tasks 3 --push
   "created_at": "YYYY-MM-DD",
   "docs_dir": "docs",
   "src_dir": "src",
-  "requirements_docs": ["docs/xxx.md"],
+  "requirements_docs": [
+    "docs/xxx.md"
+  ],
   "tasks": [
     {
       "id": 1,
@@ -148,12 +157,12 @@ python run.py --src src --max-tasks 3 --push
 
 ## Task Status
 
-| Status | Description |
-|------|------|
-| `pending` | Pending execution |
-| `in_progress` | Currently executing |
-| `completed` | Completed |
-| `blocked` | Blocked |
+| Status         | Description               |
+|----------------|---------------------------|
+| `pending`      | Pending execution         |
+| `in_progress`  | Currently executing       |
+| `completed`    | Completed                 |
+| `blocked`      | Blocked                   |
 | `needs_manual` | Needs manual intervention |
 
 ## Execution Flow

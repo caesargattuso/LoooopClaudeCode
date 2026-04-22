@@ -4,7 +4,6 @@ import os
 from datetime import datetime
 from typing import Optional
 
-
 # Task status constants
 STATUS_PENDING = "pending"
 STATUS_IN_PROGRESS = "in_progress"
