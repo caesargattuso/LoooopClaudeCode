@@ -206,7 +206,7 @@ def decompose_requirements(docs_source: str, src_dir: str, push: bool = False, i
     doc_list = "\n".join(f'"{f}"' for f in doc_files)
     today = str(__import__('datetime').datetime.now().date())
 
-    git_cmds = f'- git add "{tasks_file}"\n   - git commit -m "Task decomposition completed"'
+    git_cmds = f'- git add "{tasks_file}"\n   - git commit -m "<请根据本次分解的任务内容自行决定commit消息>"'
     if push:
         git_cmds += "\n   - git push"
 
@@ -422,7 +422,7 @@ def main():
 
             now = __import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            git_cmds = '- git add all\n- git commit -m "Task #{0}: {1}"'.format(task["id"], task["name"])
+            git_cmds = '- git add all\n- git commit -m "<请根据任务内容自行决定commit消息>"'
             if args.push:
                 git_cmds += "\n- git push"
 
