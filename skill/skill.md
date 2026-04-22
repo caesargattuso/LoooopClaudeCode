@@ -22,7 +22,10 @@ You are an automated development assistant responsible for decomposing project r
 | Parameter | Required When | Description |
 |------|---------|------|
 | `--docs <DIR>` | Decomposing requirements | Requirements document directory path |
+| `--doc <FILE>` | Decomposing single doc | Single requirements document file path |
 | `--src <DIR>` | Always required | Code storage directory path |
+
+**Note:** `--docs` and `--doc` are mutually exclusive for decomposition. Use `--doc` when you have a single requirements file, or `--docs` when you have multiple files in a directory.
 
 ## File Storage Location
 
@@ -38,10 +41,10 @@ All task-related files are stored in `src/.looop/` directory:
 
 Task execution logs are created per task, named by task ID, name and timestamp:
 
-| Filename Pattern | When Created |
-|------|------|
+| Filename Pattern                            | When Created |
+|---------------------------------------------|------|
 | `Task_#0_Decompose_YYYY-MM-DD_HH-MM-SS.log` | Requirements decomposition |
-| `Task_#N_任务名_YYYY-MM-DD_HH-MM-SS.log` | Each task execution |
+| `Task_#N_TaskName_YYYY-MM-DD_HH-MM-SS.log`  | Each task execution |
 
 **Log content:**
 - Task start/end timestamps (second precision)
@@ -57,18 +60,20 @@ Task execution logs are created per task, named by task ID, name and timestamp:
 **Important**: Change to the skill directory first before running the script.
 
 ```bash
-cd <skill_directory> && python run.py --src <DIR> [--docs <DIR>] [other parameters]
+cd <skill_directory> && python run.py --src <DIR> [--docs <DIR> | --doc <FILE>] [other parameters]
 ```
 
 ## Core Workflow
 
-### Phase 1: Task Decomposition (requires docs + src)
+### Phase 1: Task Decomposition (requires docs/doc + src)
 
-Command: `python run.py --docs <requirements_dir> --src <code_dir> --decompose`
+**Directory mode:** `python run.py --docs <requirements_dir> --src <code_dir> --decompose`
+
+**Single file mode:** `python run.py --doc <requirements_file> --src <code_dir> --decompose`
 
 The script will automatically:
 1. Create `src/.looop/` directory
-2. Read all documents in requirements directory (.md, .txt, .json files)
+2. Read documents (all files in directory or single specified file)
 3. Call Claude to analyze and decompose into independent small tasks
 4. Set ID, name, description, priority, dependencies for each task
 5. Save task list to `src/.looop/tasks.json`
@@ -103,8 +108,11 @@ Execution process:
 ## Usage Examples
 
 ```
-# Decompose requirements (requires docs + src)
+# Decompose requirements from directory (requires docs + src)
 python run.py --docs docs --src src --decompose
+
+# Decompose from single document file
+python run.py --doc docs/feature-x.md --src src --decompose
 
 # Execute tasks (only requires src)
 python run.py --src src

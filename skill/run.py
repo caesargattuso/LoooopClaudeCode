@@ -168,31 +168,40 @@ def run_claude(prompt: str, cwd: str = None, timeout: int = 600) -> str:
     return ''.join(output_lines)
 
 
-def decompose_requirements(docs_dir: str, src_dir: str, push: bool = False) -> None:
+def decompose_requirements(docs_source: str, src_dir: str, push: bool = False, is_single_doc: bool = False) -> None:
     """Let Claude decompose requirements documents and write to tasks.json"""
     # Create task-specific logger for decompose
     looop_dir = get_looop_dir(src_dir)
     init_logger(looop_dir, task_id=0, task_name="Decompose")
     logger = get_logger()
 
-    if not os.path.exists(docs_dir):
-        logger.error(f"Docs directory not found: {docs_dir}")
+    # Handle single doc vs directory
+    if is_single_doc:
+        if not os.path.isfile(docs_source):
+            logger.error(f"Document file not found: {docs_source}")
+            close_logger()
+            return
+        doc_files = [docs_source]
+        docs_dir = os.path.dirname(docs_source) or "."
+    else:
+        if not os.path.exists(docs_source):
+            logger.error(f"Docs directory not found: {docs_source}")
+            close_logger()
+            return
+        doc_files = []
+        for f in os.listdir(docs_source):
+            if f.endswith('.md') or f.endswith('.txt') or f.endswith('.json'):
+                doc_files.append(os.path.join(docs_source, f))
+        docs_dir = docs_source
+
+    if not doc_files:
+        logger.warning(f"No documents found in {docs_source}")
         close_logger()
         return
 
     ensure_claude_md(src_dir)
     init_looop_dir(src_dir)
     tasks_file = get_tasks_file(src_dir)
-
-    doc_files = []
-    for f in os.listdir(docs_dir):
-        if f.endswith('.md') or f.endswith('.txt') or f.endswith('.json'):
-            doc_files.append(os.path.join(docs_dir, f))
-
-    if not doc_files:
-        logger.warning(f"No documents in {docs_dir}")
-        close_logger()
-        return
 
     doc_list = "\n".join(f'"{f}"' for f in doc_files)
     today = str(__import__('datetime').datetime.now().date())
@@ -253,6 +262,8 @@ def main():
     parser = argparse.ArgumentParser(description="Claude Automated Development Toolkit")
     parser.add_argument("--docs", "-D", metavar="DIR",
                         help="Requirements document directory path")
+    parser.add_argument("--doc", metavar="FILE",
+                        help="Single requirements document file path")
     parser.add_argument("--src", "-S", required=True, metavar="DIR",
                         help="Code storage directory path")
     parser.add_argument("--decompose", "-d", action="store_true",
@@ -338,13 +349,21 @@ def main():
 
     # Decompose mode
     if args.decompose:
-        if not args.docs:
-            print("[Error] --docs required for decomposition")
+        if not args.docs and not args.doc:
+            print("[Error] --docs or --doc required for decomposition")
             return
-        if not os.path.exists(args.docs):
-            print(f"[Error] Docs directory not found: {args.docs}")
-            return
-        decompose_requirements(args.docs, args.src, args.push)
+        if args.doc:
+            # Single document mode
+            if not os.path.isfile(args.doc):
+                print(f"[Error] Document file not found: {args.doc}")
+                return
+            decompose_requirements(args.doc, args.src, args.push, is_single_doc=True)
+        else:
+            # Directory mode
+            if not os.path.exists(args.docs):
+                print(f"[Error] Docs directory not found: {args.docs}")
+                return
+            decompose_requirements(args.docs, args.src, args.push, is_single_doc=False)
         return
 
     # Main execution loop
