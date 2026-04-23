@@ -1,6 +1,6 @@
 # Claude Automated Development Toolkit (Loooop)
 
-An automated development tool based on Claude Code CLI that decomposes requirements documents into task lists and automatically executes them in loops until completion.
+An automated development tool based on Claude Code CLI that decomposes requirements (from documents, single files, or inline text) into task lists and automatically executes them in loops until completion.
 
 ## Directory Structure
 
@@ -13,7 +13,7 @@ skill/
 
 ## Core Workflow
 
-1. **Task Decomposition** - Claude analyzes all requirements documents in docs directory and decomposes into subtasks
+1. **Task Decomposition** - Claude analyzes requirements (documents/single file/inline text) and decomposes into subtasks
 2. **Smart Execution** - Automatically selects next task based on priority and dependencies
 3. **Code Generation** - All code files are placed in `src/` directory by default
 4. **Progress Tracking** - Claude automatically writes task summaries to `src/.looop/progress.txt`
@@ -33,16 +33,26 @@ All task-related files are stored in `src/.looop/` directory:
 
 | Parameter | Required When | Description |
 |------|---------|------|
-| `--docs <DIR>` | Decomposing requirements | Requirements document directory path |
+| `--docs <DIR>` | Decomposing requirements directory | Requirements document directory path |
+| `--doc <FILE>` | Decomposing single doc file | Single requirements document file path |
+| `--requirement <TEXT>` | Decomposing inline requirement | Direct requirement text string |
 | `--src <DIR>` | Always required | Code storage directory path |
+
+**Note:** `--docs`, `--doc`, and `--requirement` are mutually exclusive for decomposition. Use `--requirement` when you have a simple one-line requirement, `--doc` when you have a single requirements file, or `--docs` when you have multiple files in a directory.
 
 ## Usage
 
-### 1. Decompose Requirements Documents
+### 1. Decompose Requirements
 
 ```bash
-# Claude automatically reads all documents in docs directory and writes to tasks.json
+# Decompose from requirements directory
 python skill/run.py --docs docs --src src --decompose
+
+# Decompose from single document file
+python skill/run.py --doc docs/feature-x.md --src src --decompose
+
+# Decompose from inline requirement text
+python skill/run.py --requirement "Implement a user login feature with form validation and JWT authentication" --src src --decompose
 
 # Decompose and push to remote repository
 python skill/run.py --docs docs --src src --decompose --push
@@ -84,7 +94,7 @@ python skill/run.py --src src --resolve-manual 3
 
 | Parameter | Short | Description |
 |------|------|------|
-| `--decompose` | `-d` | Decompose all requirements documents in docs directory |
+| `--decompose` | `-d` | Decompose requirements documents or text into task list |
 | `--status` | `-s` | Show current task status |
 | `--mark-manual ID` | `-M` | Mark specified task as needing manual intervention |
 | `--list-manual` | `-L` | List all tasks needing manual intervention |
@@ -104,10 +114,13 @@ python skill/run.py --src src --resolve-manual 3
   "tasks": [
     {
       "id": 1,
-      "name": "Task name",
-      "description": "Detailed description",
+      "name": "Task name (concise, imperative)",
+      "description": "Detailed technical description including: what to build, files to create/modify, key implementation points",
       "priority": "high|medium|low",
       "dependencies": [],
+      "task_type": "setup|core|feature|refactor|test|docs",
+      "estimated_files": ["expected_file_path_1"],
+      "acceptance_criteria": ["Specific verifiable criteria"],
       "status": "pending",
       "result": null,
       "issues": [],
@@ -116,6 +129,21 @@ python skill/run.py --src src --resolve-manual 3
   ]
 }
 ```
+
+**Task Fields:**
+| Field | Description |
+|-------|-------------|
+| `id` | Unique task identifier |
+| `name` | Concise imperative name (e.g. 'Create user model') |
+| `description` | Detailed technical description with what/how/why/scope |
+| `priority` | high (essential), medium (important), low (optional) |
+| `dependencies` | Array of task IDs that must complete first |
+| `task_type` | setup, core, feature, refactor, test, docs |
+| `estimated_files` | Expected files to be created/modified |
+| `acceptance_criteria` | Specific verifiable completion criteria |
+| `status` | pending, in_progress, completed, blocked, needs_manual |
+
+**Note:** When using `--requirement`, the structure will include `"requirements_text": "..."` and `"docs_dir": null` instead of `"requirements_docs"` and `"docs_dir"`.
 
 ## Task Status
 

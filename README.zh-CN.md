@@ -1,6 +1,6 @@
 # Claude 自动化开发套件 (Loooop)
 
-基于 Claude Code CLI 的自动化开发工具，将需求文档拆解为任务列表，自动循环执行直到完成。
+基于 Claude Code CLI 的自动化开发工具，将需求（文档/单文件/内联文本）拆解为任务列表，自动循环执行直到完成。
 
 ## 目录结构
 
@@ -13,7 +13,7 @@ skill/
 
 ## 核心流程
 
-1. **任务拆解** - Claude 分析 docs 目录下所有需求文档，拆解成子任务
+1. **任务拆解** - Claude 分析需求（文档/单文件/内联文本），拆解成子任务
 2. **智能执行** - 按优先级和依赖关系自动选择下一个任务执行
 3. **代码生成** - 所有代码文件默认放入 `src/` 目录
 4. **进度跟踪** - Claude 自动将任务总结写入 `src/.looop/progress.txt`
@@ -33,16 +33,26 @@ skill/
 
 | 参数 | 必填时机 | 说明 |
 |------|---------|------|
-| `--docs <目录>` | 拆解需求时必填 | 需求文档目录路径 |
+| `--docs <目录>` | 拆解需求目录时必填 | 需求文档目录路径 |
+| `--doc <文件>` | 拆解单个文档时必填 | 单个需求文档文件路径 |
+| `--requirement <文本>` | 拆解内联需求时必填 | 直接传入需求文本字符串 |
 | `--src <目录>` | 总是必填 | 代码存放目录路径 |
+
+**注意：** `--docs`、`--doc` 和 `--requirement` 三者在拆解时互斥。当你有简单的一行需求时用 `--requirement`，有单个需求文件时用 `--doc`，有目录下多个文件时用 `--docs`。
 
 ## 使用方法
 
-### 1. 拆解需求文档
+### 1. 拆解需求
 
 ```bash
-# Claude 自动读取 docs 目录下所有文档并写入 tasks.json
+# 从需求目录拆解
 python skill/run.py --docs docs --src src --decompose
+
+# 从单个文档文件拆解
+python skill/run.py --doc docs/feature-x.md --src src --decompose
+
+# 从内联文本拆解
+python skill/run.py --requirement "实现用户登录功能，包含表单验证和JWT认证" --src src --decompose
 
 # 拆解后提交并推送到远程仓库
 python skill/run.py --docs docs --src src --decompose --push
@@ -84,7 +94,7 @@ python skill/run.py --src src --resolve-manual 3
 
 | 参数 | 简写 | 说明 |
 |------|------|------|
-| `--decompose` | `-d` | 拆解 docs 目录下所有需求文档 |
+| `--decompose` | `-d` | 将需求文档或文本拆解为任务列表 |
 | `--status` | `-s` | 显示当前任务状态 |
 | `--mark-manual ID` | `-M` | 标记指定任务需要人工干预 |
 | `--list-manual` | `-L` | 列出所有需人工干预的任务 |
@@ -104,10 +114,13 @@ python skill/run.py --src src --resolve-manual 3
   "tasks": [
     {
       "id": 1,
-      "name": "任务名称",
-      "description": "详细描述",
+      "name": "任务名称（简洁、祈使语气）",
+      "description": "详细技术描述：构建什么、创建/修改哪些文件、关键实现点",
       "priority": "high|medium|low",
       "dependencies": [],
+      "task_type": "setup|core|feature|refactor|test|docs",
+      "estimated_files": ["预期文件路径_1"],
+      "acceptance_criteria": ["具体可验证的完成标准"],
       "status": "pending",
       "result": null,
       "issues": [],
@@ -116,6 +129,21 @@ python skill/run.py --src src --resolve-manual 3
   ]
 }
 ```
+
+**任务字段说明：**
+| 字段 | 说明 |
+|------|------|
+| `id` | 唯一任务标识符 |
+| `name` | 简洁祈使式名称（如 '创建用户模型'） |
+| `description` | 详细技术描述，包含 what/how/why/scope |
+| `priority` | high（必要）、medium（重要）、low（可选） |
+| `dependencies` | 必须先完成的任务ID数组 |
+| `task_type` | setup, core, feature, refactor, test, docs |
+| `estimated_files` | 预期创建/修改的文件 |
+| `acceptance_criteria` | 具体可验证的完成标准 |
+| `status` | pending, in_progress, completed, blocked, needs_manual |
+
+**注意：** 使用 `--requirement` 时，结构会包含 `"requirements_text": "..."` 且 `"docs_dir": null`，而不是 `"requirements_docs"` 和 `"docs_dir"`。
 
 ## 任务状态说明
 
