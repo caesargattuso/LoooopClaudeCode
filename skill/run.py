@@ -175,6 +175,8 @@ def decompose_requirements(docs_source: str, src_dir: str, push: bool = False, i
     init_logger(looop_dir, task_id=0, task_name="Decompose")
     logger = get_logger()
 
+    today = str(__import__('datetime').datetime.now().date())
+
     # Handle single doc vs directory
     if is_single_doc:
         if not os.path.isfile(docs_source):
@@ -204,7 +206,6 @@ def decompose_requirements(docs_source: str, src_dir: str, push: bool = False, i
     tasks_file = get_tasks_file(src_dir)
 
     doc_list = "\n".join(f'"{f}"' for f in doc_files)
-    today = str(__import__('datetime').datetime.now().date())
 
     git_cmds = f'- git add "{tasks_file}"\n   - git commit -m "<decide commit message based on task decomposition>"'
     if push:
@@ -258,12 +259,77 @@ Please report the number of tasks after completion.
     close_logger()
 
 
+def decompose_requirement_text(requirement_text: str, src_dir: str, push: bool = False) -> None:
+    """Let Claude decompose a requirement text string and write to tasks.json"""
+    looop_dir = get_looop_dir(src_dir)
+    init_logger(looop_dir, task_id=0, task_name="Decompose")
+    logger = get_logger()
+
+    today = str(__import__('datetime').datetime.now().date())
+
+    ensure_claude_md(src_dir)
+    init_looop_dir(src_dir)
+    tasks_file = get_tasks_file(src_dir)
+
+    git_cmds = f'- git add "{tasks_file}"\n   - git commit -m "<decide commit message based on task decomposition>"'
+    if push:
+        git_cmds += "\n   - git push"
+
+    # Build JSON example string
+    json_example = f''' {{
+  "project": "Project name",
+  "created_at": "{today}",
+  "docs_dir": null,
+  "src_dir": "{src_dir}",
+  "requirements_text": "Original requirement text",
+  "tasks": [
+    {{
+      "id": 1,
+      "name": "Task name",
+      "description": "Detailed description",
+      "priority": "high|medium|low",
+      "dependencies": [],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
+    }}
+  ]
+}}'''
+
+    prompt = f"""Please analyze the following requirement and decompose it into a specific development task list.
+
+Requirement:
+{requirement_text}
+
+Code storage directory: "{src_dir}"
+Task file storage path: "{tasks_file}"
+
+Requirements:
+1. Analyze the requirement comprehensively and decompose into independent small tasks
+2. Set reasonable task dependencies and priorities
+3. Save the task list to "{tasks_file}" file in the following format:
+
+{json_example}
+
+4. After saving, execute git operations:
+{git_cmds}
+
+Please report the number of tasks after completion.
+"""
+
+    run_claude(prompt, cwd=src_dir)
+    close_logger()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Claude Automated Development Toolkit")
     parser.add_argument("--docs", "-D", metavar="DIR",
                         help="Requirements document directory path")
     parser.add_argument("--doc", metavar="FILE",
                         help="Single requirements document file path")
+    parser.add_argument("--requirement", "-r", metavar="TEXT",
+                        help="Direct requirement text string")
     parser.add_argument("--src", "-S", required=True, metavar="DIR",
                         help="Code storage directory path")
     parser.add_argument("--decompose", "-d", action="store_true",
@@ -349,10 +415,19 @@ def main():
 
     # Decompose mode
     if args.decompose:
-        if not args.docs and not args.doc:
-            print("[Error] --docs or --doc required for decomposition")
+        # Check which source is provided
+        sources_provided = sum(1 for x in [args.docs, args.doc, args.requirement] if x)
+        if sources_provided == 0:
+            print("[Error] --docs, --doc, or --requirement required for decomposition")
             return
-        if args.doc:
+        if sources_provided > 1:
+            print("[Error] Only one of --docs, --doc, or --requirement can be used")
+            return
+
+        if args.requirement:
+            # Direct requirement text mode
+            decompose_requirement_text(args.requirement, args.src, args.push)
+        elif args.doc:
             # Single document mode
             if not os.path.isfile(args.doc):
                 print(f"[Error] Document file not found: {args.doc}")

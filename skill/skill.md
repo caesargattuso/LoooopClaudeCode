@@ -20,14 +20,14 @@ task lists and automatically executing each task in loops until the project is c
 
 ## Parameters
 
-| Parameter      | Required When            | Description                            |
-|----------------|--------------------------|----------------------------------------|
-| `--docs <DIR>` | Decomposing requirements | Requirements document directory path   |
-| `--doc <FILE>` | Decomposing single doc   | Single requirements document file path |
-| `--src <DIR>`  | Always required          | Code storage directory path            |
+| Parameter          | Required When              | Description                            |
+|--------------------|----------------------------|----------------------------------------|
+| `--docs <DIR>`     | Decomposing requirements directory | Requirements document directory path   |
+| `--doc <FILE>`     | Decomposing single doc file | Single requirements document file path |
+| `--requirement <TEXT>` | Decomposing inline requirement | Direct requirement text string |
+| `--src <DIR>`      | Always required          | Code storage directory path            |
 
-**Note:** `--docs` and `--doc` are mutually exclusive for decomposition. Use `--doc` when you have a single requirements
-file, or `--docs` when you have multiple files in a directory.
+**Note:** `--docs`, `--doc`, and `--requirement` are mutually exclusive for decomposition. Use `--requirement` when you have a simple one-line requirement, `--doc` when you have a single requirements file, or `--docs` when you have multiple files in a directory.
 
 ## File Storage Location
 
@@ -64,21 +64,23 @@ Task execution logs are created per task, named by task ID, name and timestamp:
 **Important**: Change to the skill directory first before running the script.
 
 ```bash
-cd <skill_directory> && python run.py --src <DIR> [--docs <DIR> | --doc <FILE>] [other parameters]
+cd <skill_directory> && python run.py --src <DIR> [--docs <DIR> | --doc <FILE> | --requirement <TEXT>] [other parameters]
 ```
 
 ## Core Workflow
 
-### Phase 1: Task Decomposition (requires docs/doc + src)
+### Phase 1: Task Decomposition (requires docs/doc/requirement + src)
 
 **Directory mode:** `python run.py --docs <requirements_dir> --src <code_dir> --decompose`
 
 **Single file mode:** `python run.py --doc <requirements_file> --src <code_dir> --decompose`
 
+**Inline requirement mode:** `python run.py --requirement "<requirement text>" --src <code_dir> --decompose`
+
 The script will automatically:
 
 1. Create `<src_dir>/.looop/` directory
-2. Read documents (all files in directory or single specified file)
+2. Read requirement source (documents or inline text)
 3. Call Claude to analyze and decompose into independent small tasks
 4. Set ID, name, description, priority, dependencies for each task
 5. Save task list to `<src_dir>/.looop/tasks.json`
@@ -104,7 +106,7 @@ Execution process:
 
 | Parameter               | Short     | Description                                     |
 |-------------------------|-----------|-------------------------------------------------|
-| `--decompose`           | `-d`      | Decompose requirements documents into task list |
+| `--decompose`           | `-d`      | Decompose requirements documents or text into task list |
 | `--status`              | `-s`      | View task status statistics                     |
 | `--max-tasks <N>`       | `-m <N>`  | Maximum N tasks to execute                      |
 | `--push`                | `-P`      | Execute git push after completion               |
@@ -120,6 +122,9 @@ python run.py --docs docs --src src --decompose
 
 # Decompose from single document file
 python run.py --doc docs/feature-x.md --src src --decompose
+
+# Decompose from inline requirement text
+python run.py --requirement "实现一个用户登录功能，包含表单验证和JWT认证" --src src --decompose
 
 # Execute tasks (only requires src)
 python run.py --src src
@@ -155,6 +160,8 @@ python run.py --src src --max-tasks 3 --push
 }
 ```
 
+**Note:** When using `--requirement`, the structure will include `"requirements_text": "..."` and `"docs_dir": null` instead of `"requirements_docs"` and `"docs_dir"`.
+
 ## Task Status
 
 | Status         | Description               |
@@ -167,7 +174,7 @@ python run.py --src src --max-tasks 3 --push
 
 ## Execution Flow
 
-1. **Receive parameters** - Parse src (required) and optional docs
+1. **Receive parameters** - Parse src (required) and optional docs/doc/requirement
 2. **Build command** - Build python command based on parameters
 3. **Execute script** - Change to skill directory, then run run.py using Bash tool
 4. **Output results** - Display execution output and progress
