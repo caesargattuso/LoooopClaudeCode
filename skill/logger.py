@@ -64,7 +64,7 @@ class Logger:
         # Log file name
         timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         if task_id is not None and task_name:
-            # Task-specific log: Task_#1_任务名称_2026-04-21_16-36.log
+            # Task-specific log: Task_#1_TaskName_2026-04-21_16-36.log
             safe_name = sanitize_filename(task_name)
             filename = f"Task_#{task_id}_{safe_name}_{timestamp}.log"
         else:
