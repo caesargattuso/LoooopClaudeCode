@@ -247,36 +247,64 @@ Task file storage path: "{tasks_file}"
 ## Task Decomposition Guidelines
 
 ### 1. Granularity Principle
-- Each task should be completable in a single Claude session (typically 30-60 minutes of work)
-- Avoid overly broad tasks like "Build the entire system" - break into specific components
-- Avoid overly narrow tasks - each task should have clear, meaningful deliverables
+- Each task should be completable in 1-3 Claude sessions (typically 1-3 hours of meaningful work)
+- Target: 3-15 tasks for a typical project, NOT 30+ tiny tasks
+- **Anti-patterns to avoid:**
+  - "Create file X" - too narrow, just a file operation
+  - "Write function Y" - too narrow, should be part of a module task
+  - "Add validation for field Z" - too narrow, validation belongs to the feature task
+  - "Setup dependency A" - too narrow, combine all setup into ONE setup task
+- **Good granularity examples:**
+  - "Implement user authentication module" (includes: model, routes, validation, session handling)
+  - "Build data processing pipeline" (includes: input parsing, transformation, output formatting)
+  - "Create REST API for resource X" (includes: endpoints, validation, error handling, basic docs)
+  - "Setup project infrastructure" (includes: config, dependencies, folder structure, basic scaffolding)
 
-### 2. Task Breakdown Strategy
-Apply these decomposition layers systematically:
+### 2. Task Consolidation Rules (IMPORTANT)
+Before splitting a task, ask: "Can this be part of a larger related task?"
 
-**Layer A - Setup & Infrastructure:**
-- Project initialization, configuration files, dependencies
-- Database setup, API scaffolding, folder structure
+**Combine when:**
+- Multiple tasks share the same file/module → merge into ONE module task
+- Sequential tiny tasks (A→B→C) with no branching → merge into ONE pipeline task
+- Setup tasks < 5 files → merge into ONE setup task
+- Related features used together → merge into ONE feature module task
 
-**Layer B - Core Data & Models:**
-- Data models, schemas, database tables
-- Core business logic components
+**Split only when:**
+- Truly independent components with NO shared files
+- Parallel work paths (different developers could work simultaneously)
+- Large feature that genuinely needs 3+ hours AND has clear sub-components
 
-**Layer C - API/Interface Layer:**
-- Controllers, routes, endpoints
-- Input validation, output formatting
+### 3. Task Breakdown Strategy (Layer Guidelines)
+Each layer typically produces ONE consolidated task, NOT multiple tiny tasks:
 
-**Layer D - Features & Business Logic:**
-- Specific features from requirements
-- User interactions, workflows
+**Layer A - Setup & Infrastructure (ONE task):**
+- Combine: project init + config + dependencies + folder structure + database setup
+- Example: "Setup project infrastructure" covers ALL setup in ONE task
 
-**Layer E - Integration & Utilities:**
-- Helper functions, services, third-party integrations
-- Logging, error handling, middleware
+**Layer B - Core Data & Models (ONE task per major domain):**
+- Combine all models/schemas for a domain into ONE task
+- Example: "Create data models for user and order domain" (NOT separate tasks per model)
 
-**Layer F - Testing & Documentation:**
-- Unit tests, integration tests
-- API documentation, user guides
+**Layer C - API/Interface Layer (ONE task per resource):**
+- Combine: all endpoints + validation + error handling for ONE resource
+- Example: "Build REST API for user resource" (NOT separate tasks per endpoint)
+
+**Layer D - Features & Business Logic (ONE task per feature module):**
+- Combine related feature components into ONE cohesive task
+- Example: "Implement user authentication feature" (includes: login, logout, session, validation)
+
+**Layer E - Integration & Utilities (ONE task or merge into Layer D):**
+- Combine helpers/services into ONE task, or merge into related feature tasks
+- Example: "Add utility helpers and middleware" (NOT separate tasks per helper function)
+
+**Layer F - Testing & Documentation (ONE task at END):**
+- ONE unified test task covering all features, NO per-feature tests
+
+### 3. Test Task Consolidation Rule (IMPORTANT)
+- DO NOT create test tasks for individual features (e.g., "Test user model", "Test login API")
+- Create ONE comprehensive test task at the end with dependencies on ALL feature tasks
+- Example: "Write comprehensive tests for all completed features" (depends on all core/feature task IDs)
+- This ensures faster development iteration and unified test coverage verification
 
 ### 3. Dependency Analysis
 - Identify hard dependencies (must complete before another task)
@@ -385,36 +413,64 @@ Task file storage path: "{tasks_file}"
 ## Task Decomposition Guidelines
 
 ### 1. Granularity Principle
-- Each task should be completable in a single Claude session (typically 30-60 minutes of work)
-- Avoid overly broad tasks like "Build the entire system" - break into specific components
-- Avoid overly narrow tasks - each task should have clear, meaningful deliverables
+- Each task should be completable in 1-3 Claude sessions (typically 1-3 hours of meaningful work)
+- Target: 3-15 tasks for a typical project, NOT 30+ tiny tasks
+- **Anti-patterns to avoid:**
+  - "Create file X" - too narrow, just a file operation
+  - "Write function Y" - too narrow, should be part of a module task
+  - "Add validation for field Z" - too narrow, validation belongs to the feature task
+  - "Setup dependency A" - too narrow, combine all setup into ONE setup task
+- **Good granularity examples:**
+  - "Implement user authentication module" (includes: model, routes, validation, session handling)
+  - "Build data processing pipeline" (includes: input parsing, transformation, output formatting)
+  - "Create REST API for resource X" (includes: endpoints, validation, error handling, basic docs)
+  - "Setup project infrastructure" (includes: config, dependencies, folder structure, basic scaffolding)
 
-### 2. Task Breakdown Strategy
-Apply these decomposition layers systematically:
+### 2. Task Consolidation Rules (IMPORTANT)
+Before splitting a task, ask: "Can this be part of a larger related task?"
 
-**Layer A - Setup & Infrastructure:**
-- Project initialization, configuration files, dependencies
-- Database setup, API scaffolding, folder structure
+**Combine when:**
+- Multiple tasks share the same file/module → merge into ONE module task
+- Sequential tiny tasks (A→B→C) with no branching → merge into ONE pipeline task
+- Setup tasks < 5 files → merge into ONE setup task
+- Related features used together → merge into ONE feature module task
 
-**Layer B - Core Data & Models:**
-- Data models, schemas, database tables
-- Core business logic components
+**Split only when:**
+- Truly independent components with NO shared files
+- Parallel work paths (different developers could work simultaneously)
+- Large feature that genuinely needs 3+ hours AND has clear sub-components
 
-**Layer C - API/Interface Layer:**
-- Controllers, routes, endpoints
-- Input validation, output formatting
+### 3. Task Breakdown Strategy (Layer Guidelines)
+Each layer typically produces ONE consolidated task, NOT multiple tiny tasks:
 
-**Layer D - Features & Business Logic:**
-- Specific features from requirements
-- User interactions, workflows
+**Layer A - Setup & Infrastructure (ONE task):**
+- Combine: project init + config + dependencies + folder structure + database setup
+- Example: "Setup project infrastructure" covers ALL setup in ONE task
 
-**Layer E - Integration & Utilities:**
-- Helper functions, services, third-party integrations
-- Logging, error handling, middleware
+**Layer B - Core Data & Models (ONE task per major domain):**
+- Combine all models/schemas for a domain into ONE task
+- Example: "Create data models for user and order domain" (NOT separate tasks per model)
 
-**Layer F - Testing & Documentation:**
-- Unit tests, integration tests
-- API documentation, user guides
+**Layer C - API/Interface Layer (ONE task per resource):**
+- Combine: all endpoints + validation + error handling for ONE resource
+- Example: "Build REST API for user resource" (NOT separate tasks per endpoint)
+
+**Layer D - Features & Business Logic (ONE task per feature module):**
+- Combine related feature components into ONE cohesive task
+- Example: "Implement user authentication feature" (includes: login, logout, session, validation)
+
+**Layer E - Integration & Utilities (ONE task or merge into Layer D):**
+- Combine helpers/services into ONE task, or merge into related feature tasks
+- Example: "Add utility helpers and middleware" (NOT separate tasks per helper function)
+
+**Layer F - Testing & Documentation (ONE task at END):**
+- ONE unified test task covering all features, NO per-feature tests
+
+### 3. Test Task Consolidation Rule (IMPORTANT)
+- DO NOT create test tasks for individual features (e.g., "Test user model", "Test login API")
+- Create ONE comprehensive test task at the end with dependencies on ALL feature tasks
+- Example: "Write comprehensive tests for all completed features" (depends on all core/feature task IDs)
+- This ensures faster development iteration and unified test coverage verification
 
 ### 3. Dependency Analysis
 - Identify hard dependencies (must complete before another task)
@@ -705,12 +761,21 @@ Target: "{args.src}/"{context_hint}{completed_context}
 - Use logical folder structure (models, controllers, services, utils, etc.)
 - Name files descriptively following project conventions
 
-### 4. Verification
-- Test basic functionality before completion
-- Verify all acceptance criteria are met
-- Check for obvious errors or missing implementations
+### 4. Testing Strategy (CRITICAL)
+{f'''- This is a TEST task: Write comprehensive tests for ALL completed features
+- Test coverage should verify functionality from previous tasks
+- Include unit tests, integration tests, edge cases, and error handling tests''' if task.get('task_type') == 'test' else f'''- This is NOT a test task: DO NOT write tests during this task
+- Focus ONLY on implementing the core functionality described above
+- Testing will be handled in a separate unified testing phase at the end
+- Skip any "write tests" requirements in acceptance criteria - they will be deferred'''}
 
-### 5. Completion Documentation
+### 5. Verification
+{f'''- Run all tests to ensure they pass
+- Verify test coverage meets requirements''' if task.get('task_type') == 'test' else f'''- Verify basic functionality works (manual smoke test if needed)
+- DO NOT write automated tests - just ensure code is functional
+- Check for obvious errors or missing implementations'''}
+
+### 6. Completion Documentation
 Append summary to "{progress_file}":
 
 ```
@@ -722,7 +787,7 @@ Status: completed or needs_manual
 Done:
 - [List specific files created/modified]
 - [Key implementation decisions]
-- [How acceptance criteria were verified]
+{f'- [Test coverage summary]' if task.get('task_type') == 'test' else '- [Tests deferred to unified testing phase]'}
 ----------------------------------------
 Issues:
 - [None or specific blockers encountered]
@@ -732,10 +797,10 @@ Manual reason:
 ========================================
 ```
 
-### 6. Git Operations (if completed successfully)
+### 7. Git Operations (if completed successfully)
 {git_cmds}
 
-### 7. Status Reporting
+### 8. Status Reporting
 End your output with:
 ---STATUS---
 completed or needs_manual
@@ -745,7 +810,7 @@ completed or needs_manual
 
 - If blocked by external dependencies, API keys, or decisions requiring human input: mark needs_manual with clear reason
 - If partially complete but blocked: document what was done and what remains
-- If fully complete: ensure all acceptance criteria verified before marking completed
+- If fully complete: ensure core functionality works before marking completed
 """
 
             output = run_claude(prompt, cwd=args.src)

@@ -163,6 +163,19 @@ The system automatically selects the next task following these rules:
 2. **Priority Sorting** - high > medium > low
 3. **Skip Manual** - Automatically skip tasks with `needs_manual` status
 
+## Test Consolidation Strategy
+
+Tests are unified into a single phase at the end instead of scattered throughout:
+
+- **During development**: Focus on core functionality only, no per-task tests
+- **Final testing phase**: ONE comprehensive test task covers all completed features
+- **Benefits**: Faster iteration, unified test coverage, less task fragmentation
+
+This is reflected in task decomposition:
+- Test tasks are NOT created for individual features
+- ONE unified test task is created at the end with dependencies on ALL feature tasks
+- Example: "Write comprehensive tests for all completed features" (depends on IDs: 1,2,3,4,5...)
+
 ## Dependencies
 
 - Python 3.x
