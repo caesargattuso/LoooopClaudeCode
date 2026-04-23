@@ -81,7 +81,7 @@ The script will automatically:
 1. Create `<src_dir>/.looop/` directory
 2. Read requirement source (documents or inline text)
 3. Call Claude to analyze and decompose into independent small tasks
-4. Set ID, name, description, priority, dependencies for each task
+4. Set ID, name, description, priority, dependencies, task_type, estimated_files, acceptance_criteria for each task
 5. Save task list to `<src_dir>/.looop/tasks.json`
 
 ### Phase 2: Task Execution (only requires src)
