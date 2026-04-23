@@ -211,7 +211,7 @@ def decompose_requirements(docs_source: str, src_dir: str, push: bool = False, i
     if push:
         git_cmds += "\n   - git push"
 
-    # Build JSON example string
+    # Build JSON example string with detailed fields
     json_example = f''' {{
   "project": "Project name",
   "created_at": "{today}",
@@ -221,10 +221,13 @@ def decompose_requirements(docs_source: str, src_dir: str, push: bool = False, i
   "tasks": [
     {{
       "id": 1,
-      "name": "Task name",
-      "description": "Detailed description",
+      "name": "Task name (concise, imperative, e.g. 'Create user model')",
+      "description": "Detailed technical description including: what to build, specific files to create/modify, key implementation points",
       "priority": "high|medium|low",
       "dependencies": [],
+      "task_type": "setup|core|feature|refactor|test|docs",
+      "estimated_files": ["expected_file_path_1", "expected_file_path_2"],
+      "acceptance_criteria": ["Specific verifiable criteria 1", "Criteria 2"],
       "status": "pending",
       "result": null,
       "issues": [],
@@ -233,7 +236,7 @@ def decompose_requirements(docs_source: str, src_dir: str, push: bool = False, i
   ]
 }}'''
 
-    prompt = f"""Please analyze all requirements documents in the "{docs_dir}" directory and decompose them into a specific development task list.
+    prompt = f"""You are an expert project manager and technical architect. Analyze all requirements documents in the "{docs_dir}" directory and decompose them into a detailed, executable development task list.
 
 Requirements document paths:
 {doc_list}
@@ -241,18 +244,89 @@ Requirements document paths:
 Code storage directory: "{src_dir}"
 Task file storage path: "{tasks_file}"
 
-Requirements:
-1. Read all requirements document content
-2. Analyze comprehensively and decompose into independent small tasks
-3. Set reasonable task dependencies and priorities
-4. Save the task list to "{tasks_file}" file in the following format:
+## Task Decomposition Guidelines
+
+### 1. Granularity Principle
+- Each task should be completable in a single Claude session (typically 30-60 minutes of work)
+- Avoid overly broad tasks like "Build the entire system" - break into specific components
+- Avoid overly narrow tasks - each task should have clear, meaningful deliverables
+
+### 2. Task Breakdown Strategy
+Apply these decomposition layers systematically:
+
+**Layer A - Setup & Infrastructure:**
+- Project initialization, configuration files, dependencies
+- Database setup, API scaffolding, folder structure
+
+**Layer B - Core Data & Models:**
+- Data models, schemas, database tables
+- Core business logic components
+
+**Layer C - API/Interface Layer:**
+- Controllers, routes, endpoints
+- Input validation, output formatting
+
+**Layer D - Features & Business Logic:**
+- Specific features from requirements
+- User interactions, workflows
+
+**Layer E - Integration & Utilities:**
+- Helper functions, services, third-party integrations
+- Logging, error handling, middleware
+
+**Layer F - Testing & Documentation:**
+- Unit tests, integration tests
+- API documentation, user guides
+
+### 3. Dependency Analysis
+- Identify hard dependencies (must complete before another task)
+- Order tasks so foundational work comes first
+- Mark dependencies clearly - use task IDs from earlier tasks
+
+### 4. Priority Assignment Rules
+- **high**: Core functionality, blocking other tasks, setup essentials
+- **medium**: Important features, can be delayed briefly
+- **low**: Nice-to-have, polish, documentation, optional enhancements
+
+### 5. Description Quality Requirements
+Each task description must include:
+- **What**: Specific deliverable (file names, function names, components)
+- **How**: Key implementation approach, technology choices
+- **Why**: Connection to requirements (which requirement this addresses)
+- **Scope**: Clear boundaries - what's included and excluded
+
+### 6. File Prediction
+- List expected files to be created/modified
+- Use realistic paths matching project structure
+- If uncertain, use descriptive placeholders like "src/models/user.py"
+
+### 7. Acceptance Criteria
+Each task must have 1-3 specific, verifiable acceptance criteria:
+- Example: "User can register with valid email" (not: "Registration works")
+- Example: "API returns 200 for valid requests" (not: "API is functional")
+- Example: "Tests pass with >80% coverage" (not: "Tests are written")
+
+## Execution Steps
+
+1. Read and deeply analyze all requirements document content
+2. Identify all major features and components mentioned
+3. Apply decomposition layers to create fine-grained tasks
+4. Set logical dependencies following the layer order
+5. Assign priorities based on criticality and dependency position
+6. Write detailed descriptions with technical specifics
+7. Predict files and define acceptance criteria for each task
+8. Save the complete task list to "{tasks_file}" in JSON format:
 
 {json_example}
 
-5. After saving, execute git operations:
-{git_cmds}
+## Output Requirements
 
-Please report the number of tasks after completion.
+After completing, provide a summary:
+- Total tasks created
+- Tasks by type (setup, core, feature, test, etc.)
+- Tasks by priority (high/medium/low)
+- Dependency chain overview
+- Estimated project scope and complexity assessment
 """
 
     run_claude(prompt, cwd=src_dir)
@@ -275,7 +349,7 @@ def decompose_requirement_text(requirement_text: str, src_dir: str, push: bool =
     if push:
         git_cmds += "\n   - git push"
 
-    # Build JSON example string
+    # Build JSON example string with detailed fields
     json_example = f''' {{
   "project": "Project name",
   "created_at": "{today}",
@@ -285,10 +359,13 @@ def decompose_requirement_text(requirement_text: str, src_dir: str, push: bool =
   "tasks": [
     {{
       "id": 1,
-      "name": "Task name",
-      "description": "Detailed description",
+      "name": "Task name (concise, imperative, e.g. 'Create user model')",
+      "description": "Detailed technical description including: what to build, specific files to create/modify, key implementation points",
       "priority": "high|medium|low",
       "dependencies": [],
+      "task_type": "setup|core|feature|refactor|test|docs",
+      "estimated_files": ["expected_file_path_1", "expected_file_path_2"],
+      "acceptance_criteria": ["Specific verifiable criteria 1", "Criteria 2"],
       "status": "pending",
       "result": null,
       "issues": [],
@@ -297,7 +374,7 @@ def decompose_requirement_text(requirement_text: str, src_dir: str, push: bool =
   ]
 }}'''
 
-    prompt = f"""Please analyze the following requirement and decompose it into a specific development task list.
+    prompt = f"""You are an expert project manager and technical architect. Analyze the following requirement and decompose it into a detailed, executable development task list.
 
 Requirement:
 {requirement_text}
@@ -305,17 +382,89 @@ Requirement:
 Code storage directory: "{src_dir}"
 Task file storage path: "{tasks_file}"
 
-Requirements:
-1. Analyze the requirement comprehensively and decompose into independent small tasks
-2. Set reasonable task dependencies and priorities
-3. Save the task list to "{tasks_file}" file in the following format:
+## Task Decomposition Guidelines
+
+### 1. Granularity Principle
+- Each task should be completable in a single Claude session (typically 30-60 minutes of work)
+- Avoid overly broad tasks like "Build the entire system" - break into specific components
+- Avoid overly narrow tasks - each task should have clear, meaningful deliverables
+
+### 2. Task Breakdown Strategy
+Apply these decomposition layers systematically:
+
+**Layer A - Setup & Infrastructure:**
+- Project initialization, configuration files, dependencies
+- Database setup, API scaffolding, folder structure
+
+**Layer B - Core Data & Models:**
+- Data models, schemas, database tables
+- Core business logic components
+
+**Layer C - API/Interface Layer:**
+- Controllers, routes, endpoints
+- Input validation, output formatting
+
+**Layer D - Features & Business Logic:**
+- Specific features from requirements
+- User interactions, workflows
+
+**Layer E - Integration & Utilities:**
+- Helper functions, services, third-party integrations
+- Logging, error handling, middleware
+
+**Layer F - Testing & Documentation:**
+- Unit tests, integration tests
+- API documentation, user guides
+
+### 3. Dependency Analysis
+- Identify hard dependencies (must complete before another task)
+- Order tasks so foundational work comes first
+- Mark dependencies clearly - use task IDs from earlier tasks
+
+### 4. Priority Assignment Rules
+- **high**: Core functionality, blocking other tasks, setup essentials
+- **medium**: Important features, can be delayed briefly
+- **low**: Nice-to-have, polish, documentation, optional enhancements
+
+### 5. Description Quality Requirements
+Each task description must include:
+- **What**: Specific deliverable (file names, function names, components)
+- **How**: Key implementation approach, technology choices
+- **Why**: Connection to requirements (which requirement this addresses)
+- **Scope**: Clear boundaries - what's included and excluded
+
+### 6. File Prediction
+- List expected files to be created/modified
+- Use realistic paths matching project structure
+- If uncertain, use descriptive placeholders like "src/models/user.py"
+
+### 7. Acceptance Criteria
+Each task must have 1-3 specific, verifiable acceptance criteria:
+- Example: "User can register with valid email" (not: "Registration works")
+- Example: "API returns 200 for valid requests" (not: "API is functional")
+- Example: "Tests pass with >80% coverage" (not: "Tests are written")
+
+## Execution Steps
+
+1. Deeply analyze the requirement text
+2. Identify all major features and components implied
+3. Apply decomposition layers to create fine-grained tasks
+4. Set logical dependencies following the layer order
+5. Assign priorities based on criticality and dependency position
+6. Write detailed descriptions with technical specifics
+7. Predict files and define acceptance criteria for each task
+8. Save the complete task list to "{tasks_file}" in JSON format:
 
 {json_example}
 
-4. After saving, execute git operations:
-{git_cmds}
+## Output Requirements
 
-Please report the number of tasks after completion.
+After completing, provide a summary:
+- Total tasks created
+- Tasks by type (setup, core, feature, test, etc.)
+- Tasks by priority (high/medium/low)
+- Dependency chain overview
+- Estimated project scope and complexity assessment
 """
 
     run_claude(prompt, cwd=src_dir)
@@ -492,9 +641,32 @@ def main():
 
             update_task_status(data, task["id"], "in_progress", tasks_file=tasks_file)
 
+            # Build context hint for progress file
             context_hint = ""
             if os.path.exists(progress_file):
                 context_hint = f'\nProgress file: "{progress_file}"'
+
+            # Build context from previous completed tasks
+            completed_context = ""
+            if os.path.exists(progress_file):
+                with open(progress_file, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                    # Get last 50 lines for context
+                    recent_progress = ''.join(lines[-50:]) if len(lines) > 50 else ''.join(lines)
+                    if recent_progress.strip():
+                        completed_context = f'\n\n## Recent Progress (Last Completed Tasks)\n```\n{recent_progress.strip()}\n```'
+
+            # Build acceptance criteria section
+            acceptance_section = ""
+            if task.get('acceptance_criteria'):
+                criteria_list = '\n'.join(f'- {c}' for c in task['acceptance_criteria'])
+                acceptance_section = f'\n\n## Acceptance Criteria\nVerify these criteria before marking complete:\n{criteria_list}'
+
+            # Build estimated files section
+            files_section = ""
+            if task.get('estimated_files'):
+                files_list = '\n'.join(f'- {f}' for f in task['estimated_files'])
+                files_section = f'\n\n## Expected Files\nFocus on these files:\n{files_list}'
 
             now = __import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -502,41 +674,78 @@ def main():
             if args.push:
                 git_cmds += "\n- git push"
 
-            prompt = f"""Execute task:
+            prompt = f"""Execute this development task with high quality and completeness.
 
-Task: {task['name']}
-Description: {task.get('description', 'None')}
-Priority: {task.get('priority', 'medium')}
-Directory: "{args.src}"{context_hint}
+## Task Information
 
-Requirements:
-1. Place files in "{args.src}/"
-2. Complete development
-3. If cannot complete automatically, mark needs_manual
-4. Append summary to "{progress_file}":
+**Task #{task['id']}: {task['name']}**
+- **Type**: {task.get('task_type', 'feature')}
+- **Priority**: {task.get('priority', 'medium')}
+- **Description**: {task.get('description', 'None')}{files_section}{acceptance_section}
 
+## Working Directory
+Target: "{args.src}/"{context_hint}{completed_context}
+
+## Execution Guidelines
+
+### 1. Before Coding
+- Review the task description and acceptance criteria carefully
+- Check progress file for related completed work (patterns, conventions)
+- Plan your implementation approach
+
+### 2. During Coding
+- Follow existing project conventions and patterns
+- Use appropriate technology stack for the task type
+- Write clean, maintainable code with proper naming
+- Include necessary error handling
+- Keep functions focused and modular
+
+### 3. File Organization
+- Create files in "{args.src}/" directory
+- Use logical folder structure (models, controllers, services, utils, etc.)
+- Name files descriptively following project conventions
+
+### 4. Verification
+- Test basic functionality before completion
+- Verify all acceptance criteria are met
+- Check for obvious errors or missing implementations
+
+### 5. Completion Documentation
+Append summary to "{progress_file}":
+
+```
 ========================================
 Task #{task['id']}: {task['name']}
 Time: {now}
 Status: completed or needs_manual
 ----------------------------------------
 Done:
-- [items]
+- [List specific files created/modified]
+- [Key implementation decisions]
+- [How acceptance criteria were verified]
 ----------------------------------------
 Issues:
-- [None or list]
+- [None or specific blockers encountered]
 ----------------------------------------
 Manual reason:
-- [None or reason]
+- [None or why needs manual intervention]
 ========================================
+```
 
-5. Git operations if completed:
+### 6. Git Operations (if completed successfully)
 {git_cmds}
 
-6. End output with:
+### 7. Status Reporting
+End your output with:
 ---STATUS---
 completed or needs_manual
 ---END---
+
+## Important Notes
+
+- If blocked by external dependencies, API keys, or decisions requiring human input: mark needs_manual with clear reason
+- If partially complete but blocked: document what was done and what remains
+- If fully complete: ensure all acceptance criteria verified before marking completed
 """
 
             output = run_claude(prompt, cwd=args.src)

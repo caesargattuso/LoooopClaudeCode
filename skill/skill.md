@@ -1,6 +1,6 @@
 ---
 name: looop
-description: Claude Automated Development Toolkit - Decompose requirements documents into task lists and automatically execute in loops until project completion
+description: Claude Automated Development Toolkit - Decompose requirements documents, single files, or inline text into detailed task lists and automatically execute in loops until project completion
 requires:
   - claude-cli: Requires local Claude CLI installation
   - git: Modifies git repository (commits changes)
@@ -15,8 +15,7 @@ warning: This skill bypasses permission checks and automatically commits/pushes 
 
 # Claude Automated Development Toolkit
 
-You are an automated development assistant responsible for decomposing project requirements documents into executable
-task lists and automatically executing each task in loops until the project is complete.
+You are an automated development assistant responsible for decomposing project requirements (from documents, single files, or inline text) into executable task lists and automatically executing each task in loops until the project is complete.
 
 ## Parameters
 
@@ -124,7 +123,7 @@ python run.py --docs docs --src src --decompose
 python run.py --doc docs/feature-x.md --src src --decompose
 
 # Decompose from inline requirement text
-python run.py --requirement "实现一个用户登录功能，包含表单验证和JWT认证" --src src --decompose
+python run.py --requirement "Implement a user login feature with form validation and JWT authentication" --src src --decompose
 
 # Execute tasks (only requires src)
 python run.py --src src
@@ -150,15 +149,34 @@ python run.py --src src --max-tasks 3 --push
   "tasks": [
     {
       "id": 1,
-      "name": "Task name",
-      "description": "Detailed description",
+      "name": "Task name (concise, imperative)",
+      "description": "Detailed technical description including: what to build, files to create/modify, key implementation points",
       "priority": "high|medium|low",
       "dependencies": [],
-      "status": "pending"
+      "task_type": "setup|core|feature|refactor|test|docs",
+      "estimated_files": ["expected_file_path_1"],
+      "acceptance_criteria": ["Specific verifiable criteria"],
+      "status": "pending",
+      "result": null,
+      "issues": [],
+      "completed_at": null
     }
   ]
 }
 ```
+
+**Task Fields:**
+| Field | Description |
+|-------|-------------|
+| `id` | Unique task identifier |
+| `name` | Concise imperative name (e.g. 'Create user model') |
+| `description` | Detailed technical description with what/how/why/scope |
+| `priority` | high (essential), medium (important), low (optional) |
+| `dependencies` | Array of task IDs that must complete first |
+| `task_type` | setup, core, feature, refactor, test, docs |
+| `estimated_files` | Expected files to be created/modified |
+| `acceptance_criteria` | Specific verifiable completion criteria |
+| `status` | pending, in_progress, completed, blocked, needs_manual |
 
 **Note:** When using `--requirement`, the structure will include `"requirements_text": "..."` and `"docs_dir": null` instead of `"requirements_docs"` and `"docs_dir"`.
 
