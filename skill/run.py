@@ -40,10 +40,9 @@ def check_claude_installed() -> bool:
     """Check if Claude CLI is installed"""
     try:
         result = subprocess.run(
-            'claude --version',
+            ['claude', '--version'],
             capture_output=True,
             text=True,
-            shell=True,
             timeout=10
         )
         return result.returncode == 0
@@ -67,10 +66,9 @@ def ensure_claude_md(src_dir: str) -> bool:
 
     try:
         result = subprocess.run(
-            'claude init',
+            ['claude', 'init'],
             capture_output=True,
             text=True,
-            shell=True,
             cwd=src_dir,
             timeout=120
         )
@@ -96,7 +94,7 @@ def run_claude(prompt: str, cwd: str = None, timeout: int = 600) -> str:
     env = os.environ.copy()
     if sys.platform == 'win32' and 'CLAUDE_CODE_GIT_BASH_PATH' not in env:
         try:
-            result = subprocess.run('where bash', capture_output=True, text=True, shell=True, timeout=5)
+            result = subprocess.run(['where', 'bash'], capture_output=True, text=True, timeout=5)
             if result.returncode == 0:
                 for line in result.stdout.strip().split('\n'):
                     path = line.strip()
@@ -106,7 +104,7 @@ def run_claude(prompt: str, cwd: str = None, timeout: int = 600) -> str:
         except (subprocess.TimeoutExpired, Exception):
             pass
 
-    cmd = 'claude -p --dangerously-skip-permissions --verbose --output-format stream-json'
+    cmd = ['claude', '-p', '--dangerously-skip-permissions', '--verbose', '--output-format', 'stream-json']
     process = subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE,
@@ -114,7 +112,6 @@ def run_claude(prompt: str, cwd: str = None, timeout: int = 600) -> str:
         stderr=subprocess.PIPE,
         text=True,
         encoding="utf-8",
-        shell=True,
         env=env,
         cwd=cwd
     )
